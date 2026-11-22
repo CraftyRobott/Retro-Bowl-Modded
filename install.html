@@ -68,7 +68,7 @@ async function getModFiles(){
  if(!response.ok)throw Error("Unable to read your public mods repository (HTTP "+response.status+").");
  const tree=await response.json();
  if(tree.truncated)throw Error("The mods repository tree is too large to process.");
- const all=tree.tree.filter(x=>x.type==="blob"&&x.path.startsWith("mods/")&&!x.path.endsWith("/README.md"));
+ const all=tree.tree.filter(x=>x.type==="blob"&&x.path.startsWith("mods/")&&!x.path.toLowerCase().endsWith(".md"));
  const js=all.filter(x=>x.path.toLowerCase().endsWith(".js"));
  const chosen=config.mods.map(id=>js.find(file=>file.path.slice(5)===id)).filter(Boolean);
  if(chosen.length!==config.mods.length)throw Error("One or more selected mods are no longer in the public repository. Rebuild your selection.");
