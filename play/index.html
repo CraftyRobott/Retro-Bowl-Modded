@@ -10,11 +10,18 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
 body{position:fixed;inset:0}#gm4html5_div_id{position:absolute;inset:0;margin:0;padding:0;border:0}
 canvas{image-rendering:pixelated;-webkit-interpolation-mode:nearest-neighbor;touch-action:none;-ms-touch-action:none;margin:0;padding:0;border:0}
 #offline-error{position:absolute;z-index:10;inset:0;display:none;place-items:center;background:#101411;color:#f2f4ed;font:14px system-ui;text-align:center;padding:25px;white-space:pre-wrap}
+#offline-debug{position:fixed;z-index:99999;left:0;right:0;top:0;max-height:45vh;overflow:auto;background:rgba(0,0,0,.92);color:#fff;padding:10px;box-sizing:border-box;font:12px/1.4 monospace;white-space:pre-wrap;overflow-wrap:anywhere;pointer-events:none}
 </style></head><body>
 <div id="gm4html5_div_id"><img src="html5game/splash.png" id="GM4HTML5_loadingscreen" alt="" style="display:none">
 <canvas id="canvas" width="853" height="480" style="position:absolute;top:50%;left:50%;bottom:-50%;right:-50%;transform:translate(-50%,-50%)"><p>Canvas is not supported.</p></canvas></div>
 <div id="offline-error"></div>
+<div id="offline-debug">Retro Bowl startup diagnostics: page loaded; waiting for game engine...</div>
 <script>
+window.__rbSetStatus=function(message){
+ const el=document.getElementById("offline-debug");
+ if(el)el.textContent="Retro Bowl startup diagnostics\\n"+message;
+ console.info("[Offline diagnostic]",message);
+};
 window.PokiSDK={init:()=>Promise.resolve(),gameplayStart:()=>{},gameplayStop:()=>{},happyTime:()=>{},commercialBreak:()=>Promise.resolve(),rewardedBreak:()=>Promise.resolve(false),gameLoadingStart:()=>{},gameLoadingProgress:()=>{},gameLoadingFinished:()=>{},getURLParam:()=>null,setDebug:()=>{}};
 window.PokiSDK_OK=true;window.PokiSDK_loadState=2;
 </script>
@@ -24,6 +31,7 @@ window.addEventListener("error",function(event){
  const detail={message:event.message||"Script error",file:event.filename||"",line:event.lineno||0,column:event.colno||0};
  window.__rbDiagnostics.globalErrors.push(detail);
  if(window.__rbDiagnostics.globalErrors.length>5)window.__rbDiagnostics.globalErrors.shift();
+ if(window.__rbSetStatus)window.__rbSetStatus("JavaScript error: "+JSON.stringify(detail)+"\\nJSON_game: "+typeof window.JSON_game+"\\nGameMaker_Init: "+typeof window.GameMaker_Init);
  console.error("[Offline diagnostic] JavaScript error:",detail);
 },true);
 window.addEventListener("unhandledrejection",function(event){
@@ -34,8 +42,8 @@ window.addEventListener("unhandledrejection",function(event){
 });
 </script>
 <script src="html5game/RetroBowl.js"
- onload="window.__rbDiagnostics.engineScriptLoaded=true;console.info('[Offline diagnostic] RetroBowl.js loaded; JSON_game:',typeof window.JSON_game,'GameMaker_Init:',typeof window.GameMaker_Init)"
- onerror="window.__rbDiagnostics.engineScriptError='The browser failed to load or execute the RetroBowl.js script element.';console.error('[Offline diagnostic]',window.__rbDiagnostics.engineScriptError)"></script>
+ onload="window.__rbDiagnostics.engineScriptLoaded=true;window.__rbSetStatus('RetroBowl.js loaded.\\nJSON_game: '+typeof window.JSON_game+'\\nGameMaker_Init: '+typeof window.GameMaker_Init);"
+ onerror="window.__rbDiagnostics.engineScriptError='The browser failed to load the RetroBowl.js script element.';window.__rbSetStatus(window.__rbDiagnostics.engineScriptError);"></script>
 <script src="engine/mods/loader.js"></script>
 <script>
 async function preloadGameMakerTextFiles(){
@@ -76,13 +84,19 @@ async function preloadGameMakerTextFiles(){
 window.addEventListener("load",async function(){
  const panel=document.getElementById("offline-error");
  try{
+  window.__rbSetStatus("Page load event fired.\\nRetroBowl.js load event: "+!!window.__rbDiagnostics.engineScriptLoaded+"\\nJSON_game: "+typeof window.JSON_game+"\\nGameMaker_Init: "+typeof window.GameMaker_Init+"\\nWaiting for mod loader...");
   await window.RBModsReady;
+  window.__rbSetStatus("Mod loader ready.\\nPreparing GameMaker data...");
   await preloadGameMakerTextFiles();
+  window.__rbSetStatus("GameMaker data prepared.\\nStarting game...");
   if(typeof GameMaker_Init!=="function")throw Error("Game engine did not initialize.");
   GameMaker_Init();
+  window.__rbSetStatus("GameMaker_Init called.\\nJSON_game: "+typeof window.JSON_game);
  }catch(error){
+  const details="Could not start the offline game: "+error.message;
   panel.style.display="grid";
-  panel.textContent="Could not start the offline game: "+error.message;
+  panel.textContent=details;
+  window.__rbSetStatus(details);
  }
 });
 </script></body></html>
