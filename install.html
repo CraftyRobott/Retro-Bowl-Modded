@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101411"><link rel="stylesheet" href="./styles.css">
+<title>Your Retro Bowl Build</title>
+<style>.install-panel{background:#171e19;border:1px solid #2b382e;border-radius:8px;padding:28px;margin:25px 0}.install-panel h2{font-size:30px;margin:0 0 15px}.install-panel ul{padding:0;list-style:none}.install-panel li{padding:12px 0;border-bottom:1px solid #2b382e;font-size:13px}.warning{padding:14px;background:#30271e;border-left:3px solid #f28a50;color:#e8c9a7;font-size:12px;line-height:1.65}.back{display:inline-block;margin-top:20px;color:#c7f36b;text-decoration:none;font-size:12px;font-weight:700}</style>
+</head>
+<body><main class="shell">
+<header class="topbar"><a class="brand" href="./"><span class="brand-mark">RB</span><span>RETRO BOWL <b>MODDED</b></span></a><span class="pill">BUILD SUMMARY</span></header>
+<section class="hero"><p class="eyebrow">CONFIGURATION CREATED</p><h1>Your<br><em>lineup.</em></h1><p class="intro">This link contains the mod selection for your personal build.</p></section>
+<section class="install-panel"><h2>Selected mods</h2><ul id="mods"><li>Reading configuration…</li></ul><div class="warning"><strong>Installer not connected yet.</strong><br>This is currently a configuration receipt, not a playable game. The next step is to package the actual game build and all selected mod assets, then cache them locally so the installed game can run offline. No game files have been downloaded by this page.</div><a class="back" href="./">← Change your selection</a></section>
+</main>
+<script>
+const catalogURL="./mods/catalog.json";
+(async()=>{
+ const target=document.querySelector("#mods");
+ try{
+  const encoded=location.hash.slice(1).replace(/-/g,"+").replace(/_/g,"/");
+  const config=JSON.parse(decodeURIComponent(escape(atob(encoded))));
+  if(config.schema!==1||config.game!=="retro-bowl-college"||!Array.isArray(config.mods))throw Error("Invalid build link");
+  const response=await fetch(catalogURL);if(!response.ok)throw Error("Catalog unavailable");
+  const catalog=await response.json();
+  const chosen=config.mods.map(id=>catalog.find(mod=>mod.id===id)).filter(Boolean);
+  if(!chosen.length)throw Error("No valid mods were selected");
+  target.innerHTML=chosen.map(mod=>"<li>"+mod.name+"</li>").join("");
+ }catch(error){target.textContent=error.message;}
+})();
+</script></body></html>
