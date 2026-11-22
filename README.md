@@ -1,37 +1,36 @@
 # Retro Bowl Modded
 
-A mod-selection frontend for creating personal Retro Bowl College web-app installations.
+A GitHub Pages-hosted mod selector for personal Retro Bowl College builds.
 
-## Current milestone
+## GitHub Pages deployment
 
-- Responsive mod selector using the real mod catalog from [CraftyRobott/RetroBowl_mods](https://github.com/CraftyRobott/RetroBowl_mods).
-- Ten current root-level mods listed with their filenames and known companion assets.
-- Selection is encoded into a shareable configuration URL.
-- Configuration receipt page displays the selected mods.
-- Initial PWA shell and service-worker caching for the configurator.
+The repository includes a GitHub Actions workflow at `.github/workflows/pages.yml`. In the repository settings, set **Pages → Build and deployment → Source → GitHub Actions**. Every push to `main` deploys the static site.
 
-## Important: game installer is not connected yet
+Expected site URL: https://craftyrobott.github.io/Retro-Bowl-Modded/
 
-The current site **does not generate or launch a playable game**. The install page is a configuration receipt only. The next milestone needs to:
+## Adding mods
 
-1. Integrate a game build in a way that does not publish proprietary game files in this public repository.
-2. Package the selected mod JavaScript and all required data/image assets into each build.
-3. Change the game loader to read a fixed selected-mod manifest instead of discovering every JavaScript file.
-4. Cache all game resources locally on first install and verify offline launch.
-5. Audit the game and mods for runtime network requests.
+Put each distributable JavaScript mod directly in the root `mods/` directory. The website reads that directory through GitHub's public Contents API and automatically lists every `.js` file. No catalog edit is needed.
 
-The website itself is not the game. Do not put commercial game assets in this public repository.
+Optional metadata can be added near the top of a mod file:
 
-## Catalog and dependencies
+```js
+// @name Friendly display name
+// @description A short explanation shown in the selector.
+// @category Gameplay
+```
 
-The catalog is in `mods/catalog.json`. Data-driven mods currently list these companion assets:
-- College Competitions: `data/competitions_co.txt`
-- Conference Override: `data/conferences_co.txt`
-- Custom iOS Fields: `fields/40.png`
-- College Team Data: `data/Teams_CO.txt`
-- Default College Uniforms: `data/uniforms_default_CO.txt`
+If metadata is absent, the selector creates a display name from the filename and uses a generic description. Use unique filenames because the filename (without `.js`) is the mod ID.
 
-The custom-field mod references a specific field image; confirm the complete team/image mapping before packaging.
+Only put files here that you intend to make public. The source development repository can remain private.
+
+## Current limitations
+
+- The website discovers mods and creates a configuration link.
+- The install page currently displays the selected mod filenames; it does not yet package or run the game.
+- The commercial Retro Bowl College game files are not included. They must be supplied separately and must not be committed to this public repository without appropriate rights.
+- A complete offline installation still needs a local game package, a loader that applies only the selected mods, and offline storage/testing.
+- The selector uses GitHub's public API, so mod discovery requires an internet connection. The static site shell itself is cached by its service worker after first visit.
 
 ## Local preview
 
