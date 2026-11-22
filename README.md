@@ -1,36 +1,44 @@
 # Retro Bowl Modded
 
-A GitHub Pages-hosted mod selector for personal Retro Bowl College builds.
+A GitHub Pages mod selector and browser-based offline installer prototype.
 
-## GitHub Pages deployment
+## GitHub Pages
 
-The repository includes a GitHub Actions workflow at `.github/workflows/pages.yml`. In the repository settings, set **Pages → Build and deployment → Source → GitHub Actions**. Every push to `main` deploys the static site.
+The workflow in `.github/workflows/pages.yml` deploys this repository to:
 
-Expected site URL: https://craftyrobott.github.io/Retro-Bowl-Modded/
+https://craftyrobott.github.io/Retro-Bowl-Modded/
 
-## Adding mods
+Set **Settings → Pages → Build and deployment → Source** to **GitHub Actions** once.
 
-Put each distributable JavaScript mod directly in the root `mods/` directory. The website reads that directory through GitHub's public Contents API and automatically lists every `.js` file. No catalog edit is needed.
+## Add community mods
 
-Optional metadata can be added near the top of a mod file:
+Add `.js` files under `mods/`. Subfolders are supported. Add optional metadata comments:
 
 ```js
-// @name Friendly display name
-// @description A short explanation shown in the selector.
+// @name Display name
+// @description Short description
 // @category Gameplay
 ```
 
-If metadata is absent, the selector creates a display name from the filename and uses a generic description. Use unique filenames because the filename (without `.js`) is the mod ID.
+Put supporting files alongside the mods under `mods/data/`, `mods/fields/`, or another subfolder. At install time, selected JS files and non-JavaScript support files are downloaded into the local game folder under `engine/mods/`.
 
-Only put files here that you intend to make public. The source development repository can remain private.
+Only commit mods you intend to publish. Your private development repository remains separate.
 
-## Current limitations
+## Game installation
 
-- The website discovers mods and creates a configuration link.
-- The install page currently displays the selected mod filenames; it does not yet package or run the game.
-- The commercial Retro Bowl College game files are not included. They must be supplied separately and must not be committed to this public repository without appropriate rights.
-- A complete offline installation still needs a local game package, a loader that applies only the selected mods, and offline storage/testing.
-- The selector uses GitHub's public API, so mod discovery requires an internet connection. The static site shell itself is cached by its service worker after first visit.
+The installer downloads the HTML5 game files from the public source repository `ReznorsRevenge1/retro-bowl-college` directly into each visitor's browser Cache Storage. Game files are not copied into this repository. The upstream file list is pinned in `game-manifest.json` to a specific revision for repeatable installs.
+
+The local game wrapper uses a no-op Poki SDK stub and starts GameMaker directly. The service worker serves the cached game files from `/play/`, so gameplay does not need a network connection after a successful installation.
+
+**Rights note:** the upstream repository currently has no declared license. Public visibility does not itself grant permission to make offline copies or redistribute game content. Obtain permission from the relevant rights holder before promoting or distributing this installer.
+
+## Offline and iOS notes
+
+- Keep the installer open until all files finish downloading.
+- Add the installed game page (`/play/`) to the iPhone Home Screen for a direct launch icon.
+- Browser storage can be evicted by iOS. The installer requests persistent storage where supported, but no browser-only solution can guarantee that iOS will never remove cached data.
+- Reinstall while online if local files are removed.
+- This is a prototype; test a complete install and launch with Airplane Mode enabled before relying on it.
 
 ## Local preview
 
