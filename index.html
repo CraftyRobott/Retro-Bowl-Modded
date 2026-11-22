@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#101411">
+  <meta name="description" content="Build a personal offline Retro Bowl College mod installation.">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./styles.css">
+  <title>Retro Bowl Modded</title>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar"><a class="brand" href="./"><span class="brand-mark">RB</span><span>RETRO BOWL <b>MODDED</b></span></a><span class="pill"><i></i> MOD BUILDER</span></header>
+    <section class="hero"><p class="eyebrow">YOUR GAME. YOUR RULES.</p><h1>Build your<br><em>own season.</em></h1><p class="intro">Choose the modifications you want. We'll prepare a personal game installation designed to keep working offline after setup.</p></section>
+    <section class="builder">
+      <div class="section-head"><div><p class="eyebrow">01 / CONFIGURE</p><h2>Choose your mods</h2></div><span id="count" class="count">0 SELECTED</span></div>
+      <div id="mod-list" class="mod-list"><div class="loading">Loading mod catalog…</div></div>
+      <div class="summary"><div><span class="summary-label">YOUR BUILD</span><strong id="summary">No mods selected</strong></div><button id="build" class="build-button" disabled>Build my game <span>↗</span></button></div>
+      <p id="status" class="status" role="status">Your selection is only used to create this installation.</p>
+    </section>
+    <footer><span>RETRO BOWL MODDED</span><span>Independent community project · Not affiliated with the game developers</span></footer>
+  </main>
+  <script src="./app.js"></script>
+</body>
+</html>
