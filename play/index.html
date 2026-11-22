@@ -18,14 +18,35 @@ canvas{image-rendering:pixelated;-webkit-interpolation-mode:nearest-neighbor;tou
 window.PokiSDK={init:()=>Promise.resolve(),gameplayStart:()=>{},gameplayStop:()=>{},happyTime:()=>{},commercialBreak:()=>Promise.resolve(),rewardedBreak:()=>Promise.resolve(false),gameLoadingStart:()=>{},gameLoadingProgress:()=>{},gameLoadingFinished:()=>{},getURLParam:()=>null,setDebug:()=>{}};
 window.PokiSDK_OK=true;window.PokiSDK_loadState=2;
 </script>
-<script src="html5game/RetroBowl.js"></script>
+<script>
+window.__rbDiagnostics={engineScriptLoaded:false,engineScriptError:null,globalErrors:[]};
+window.addEventListener("error",function(event){
+ const detail={message:event.message||"Script error",file:event.filename||"",line:event.lineno||0,column:event.colno||0};
+ window.__rbDiagnostics.globalErrors.push(detail);
+ if(window.__rbDiagnostics.globalErrors.length>5)window.__rbDiagnostics.globalErrors.shift();
+ console.error("[Offline diagnostic] JavaScript error:",detail);
+},true);
+window.addEventListener("unhandledrejection",function(event){
+ const reason=event.reason;
+ const detail={message:reason&&reason.message?reason.message:String(reason)};
+ window.__rbDiagnostics.globalErrors.push(detail);
+ console.error("[Offline diagnostic] Unhandled rejection:",detail);
+});
+</script>
+<script src="html5game/RetroBowl.js"
+ onload="window.__rbDiagnostics.engineScriptLoaded=true;console.info('[Offline diagnostic] RetroBowl.js loaded; JSON_game:',typeof window.JSON_game,'GameMaker_Init:',typeof window.GameMaker_Init)"
+ onerror="window.__rbDiagnostics.engineScriptError='The browser failed to load or execute the RetroBowl.js script element.';console.error('[Offline diagnostic]',window.__rbDiagnostics.engineScriptError)"></script>
 <script src="engine/mods/loader.js"></script>
 <script>
 async function preloadGameMakerTextFiles(){
  // GameMaker reads data files with synchronous XHR. Chrome does not consistently
  // send synchronous XHR through service workers, so seed its own localStorage
  // file layer before GameMaker_Init() runs.
- if(!window.JSON_game||!JSON_game.Options)throw Error("Game data configuration is unavailable.");
+ if(!window.JSON_game||!window.JSON_game.Options){
+  const d=window.__rbDiagnostics||{};
+  const recent=(d.globalErrors||[]).map(e=>(e.message||"")+" "+(e.file||"")+" line "+(e.line||0)).join(" | ");
+  throw Error("Game data configuration is unavailable. Safari diagnostics: RetroBowl.js load event="+String(!!d.engineScriptLoaded)+"; script error="+String(d.engineScriptError||"none")+"; JSON_game="+typeof window.JSON_game+"; GameMaker_Init="+typeof window.GameMaker_Init+"; JavaScript errors="+(recent||"none reported")+".");
+ }
  const options=JSON_game.Options;
  const displayName=(options.DisplayName||"").replace(/[^a-zA-Z0-9_]/g,"")||"GameMaker";
  const prefix=displayName+"."+options.gameId+".";
