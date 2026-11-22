@@ -29,6 +29,9 @@ async function preloadGameMakerTextFiles(){
  const options=JSON_game.Options;
  const displayName=(options.DisplayName||"").replace(/[^a-zA-Z0-9_]/g,"")||"GameMaker";
  const prefix=displayName+"."+options.gameId+".";
+ // GameMaker uses this runtime prefix when resolving localStorage-backed files.
+ // Set it explicitly before GameMaker_Init so its first startup reads use the same namespace.
+ if(typeof g_pBuiltIn!=="undefined"&&g_pBuiltIn){g_pBuiltIn.game_id=options.gameId;g_pBuiltIn._PN2=prefix;g_pBuiltIn.game_save_id=prefix;}
  const manifestResponse=await fetch("../game-manifest.json");
  if(!manifestResponse.ok)throw Error("Could not read the installed game manifest.");
  const manifest=await manifestResponse.json();
@@ -44,7 +47,10 @@ async function preloadGameMakerTextFiles(){
   catch(error){throw Error("Could not prepare game data in browser storage. Free some website storage and reinstall. ("+error.message+")");}
   loaded++;
  }
- console.info("[Offline] Prepared "+loaded+" GameMaker text data files in local storage.");
+ const languageKey=prefix+"LanguageUS.txt";
+ const languageData=localStorage.getItem(languageKey);
+ if(!languageData)throw Error("LanguageUS.txt was downloaded but could not be written to GameMaker storage. Check browser site-storage settings.");
+ console.info("[Offline] Prepared "+loaded+" GameMaker text data files. Namespace:",prefix,"LanguageUS bytes:",languageData.length);
 }
 window.addEventListener("load",async function(){
  const panel=document.getElementById("offline-error");
