@@ -1,0 +1,20 @@
+[
+  {
+    "id": "five-stars",
+    "name": "Five-Star Players",
+    "description": "Sets player ratings and potential to five stars.",
+    "category": "Players",
+    "icon": "5★",
+    "file": "five_stars_mod.js",
+    "enabled": true
+  },
+  {
+    "id": "scoreboard-test",
+    "name": "Scoreboard Test",
+    "description": "Experimental scoreboard drawing patch.",
+    "category": "Interface",
+    "icon": "UI",
+    "file": "scoreboard_test.js",
+    "enabled": true
+  }
+]
