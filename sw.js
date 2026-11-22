@@ -1,6 +1,17 @@
-const SHELL_CACHE="rb-modded-shell-v6";
+const SHELL_CACHE="rb-modded-shell-v7";
 const SHELL=["./","./index.html","./install.html","./styles.css","./app.js","./manifest.webmanifest","./game-manifest.json","./play/","./play/index.html","./play/manifest.webmanifest","./play/engine/mods/loader.js"];
-self.addEventListener("install",event=>event.waitUntil(caches.open(SHELL_CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting())));
+self.addEventListener("install",event=>event.waitUntil((async()=>{
+ const cache=await caches.open(SHELL_CACHE);
+ // Force a fresh network read: addAll() can reuse an old browser HTTP-cache
+ // response, which previously left play/index.html without the offline preloader.
+ await Promise.all(SHELL.map(async path=>{
+  const url=new URL(path,self.registration.scope);
+  const response=await fetch(new Request(url.href,{cache:"reload"}));
+  if(!response.ok)throw Error("Could not cache app shell file: "+path+" ("+response.status+")");
+  await cache.put(url.href,response);
+ }));
+ await self.skipWaiting();
+})()));
 self.addEventListener("activate",event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith("rb-modded-shell-")&&key!==SHELL_CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
 self.addEventListener("fetch",event=>{
  const request=event.request,url=new URL(request.url),method=request.method;
