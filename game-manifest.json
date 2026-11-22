@@ -1,0 +1,235 @@
+{
+  "source": "ReznorsRevenge1/retro-bowl-college",
+  "ref": "d5e211826acf4b15d537a1cd84b663ab66714254",
+  "files": [
+    {
+      "path": "html5game/Achievements.txt",
+      "size": 4539
+    },
+    {
+      "path": "html5game/Charities.txt",
+      "size": 302
+    },
+    {
+      "path": "html5game/Cities_CO.txt",
+      "size": 26609
+    },
+    {
+      "path": "html5game/Colleges.txt",
+      "size": 1228
+    },
+    {
+      "path": "html5game/Editor.json",
+      "size": 384
+    },
+    {
+      "path": "html5game/EpilogueValues_CO.txt",
+      "size": 157938
+    },
+    {
+      "path": "html5game/Hobbies_CO.txt",
+      "size": 6710
+    },
+    {
+      "path": "html5game/LanguageUS.txt",
+      "size": 77904
+    },
+    {
+      "path": "html5game/LanguageUS_CO.txt",
+      "size": 105492
+    },
+    {
+      "path": "html5game/MajorMinor_CO.txt",
+      "size": 11311
+    },
+    {
+      "path": "html5game/Names_F0.txt",
+      "size": 5573
+    },
+    {
+      "path": "html5game/Names_F1.txt",
+      "size": 10349
+    },
+    {
+      "path": "html5game/Names_L.txt",
+      "size": 16867
+    },
+    {
+      "path": "html5game/PlayerRecords.txt",
+      "size": 2029
+    },
+    {
+      "path": "html5game/ProTeams_CO.txt",
+      "size": 2727
+    },
+    {
+      "path": "html5game/RetroBowl.js",
+      "size": 9104751
+    },
+    {
+      "path": "html5game/RetroBowl_texture_0.png",
+      "size": 1455
+    },
+    {
+      "path": "html5game/RetroBowl_texture_1.png",
+      "size": 2070301
+    },
+    {
+      "path": "html5game/RetroBowl_texture_2.png",
+      "size": 972550
+    },
+    {
+      "path": "html5game/RetroBowl_texture_3.png",
+      "size": 193511
+    },
+    {
+      "path": "html5game/Shopping.txt",
+      "size": 922
+    },
+    {
+      "path": "html5game/Teams.txt",
+      "size": 2482
+    },
+    {
+      "path": "html5game/Traits_CO.txt",
+      "size": 20
+    },
+    {
+      "path": "html5game/snd_audible.ogg",
+      "size": 8477
+    },
+    {
+      "path": "html5game/snd_audience_dis.ogg",
+      "size": 65027
+    },
+    {
+      "path": "html5game/snd_audience_fg.ogg",
+      "size": 104466
+    },
+    {
+      "path": "html5game/snd_audience_idle.ogg",
+      "size": 415149
+    },
+    {
+      "path": "html5game/snd_beep.ogg",
+      "size": 5915
+    },
+    {
+      "path": "html5game/snd_beep2.ogg",
+      "size": 8293
+    },
+    {
+      "path": "html5game/snd_bounce.ogg",
+      "size": 6648
+    },
+    {
+      "path": "html5game/snd_click.ogg",
+      "size": 4775
+    },
+    {
+      "path": "html5game/snd_co_brass1.ogg",
+      "size": 128568
+    },
+    {
+      "path": "html5game/snd_co_brass2.ogg",
+      "size": 127356
+    },
+    {
+      "path": "html5game/snd_co_brass3.ogg",
+      "size": 132993
+    },
+    {
+      "path": "html5game/snd_co_brass4.ogg",
+      "size": 132361
+    },
+    {
+      "path": "html5game/snd_drink.ogg",
+      "size": 20273
+    },
+    {
+      "path": "html5game/snd_error.ogg",
+      "size": 7933
+    },
+    {
+      "path": "html5game/snd_kick.ogg",
+      "size": 6328
+    },
+    {
+      "path": "html5game/snd_oof1.ogg",
+      "size": 6708
+    },
+    {
+      "path": "html5game/snd_oof2.ogg",
+      "size": 10616
+    },
+    {
+      "path": "html5game/snd_oof3.ogg",
+      "size": 7674
+    },
+    {
+      "path": "html5game/snd_post.ogg",
+      "size": 7429
+    },
+    {
+      "path": "html5game/snd_purchase.ogg",
+      "size": 14328
+    },
+    {
+      "path": "html5game/snd_starrating.ogg",
+      "size": 12299
+    },
+    {
+      "path": "html5game/snd_success.ogg",
+      "size": 7494
+    },
+    {
+      "path": "html5game/snd_tackle.ogg",
+      "size": 7862
+    },
+    {
+      "path": "html5game/snd_throw.ogg",
+      "size": 6141
+    },
+    {
+      "path": "html5game/snd_timeout.ogg",
+      "size": 6547
+    },
+    {
+      "path": "html5game/sound/worklets/audio-worklet.js",
+      "size": 26481
+    },
+    {
+      "path": "html5game/splash.png",
+      "size": 2379
+    },
+    {
+      "path": "html5game/uph_poki.js",
+      "size": 4542
+    },
+    {
+      "path": "html5game/v2/Competitions_CO.txt",
+      "size": 12367
+    },
+    {
+      "path": "html5game/v2/Conferences_CO.txt",
+      "size": 2172
+    },
+    {
+      "path": "html5game/v2/Rounds_CO.txt",
+      "size": 1808
+    },
+    {
+      "path": "html5game/v2/Schedule_CO.txt",
+      "size": 438310
+    },
+    {
+      "path": "html5game/v2/Teams_CO.txt",
+      "size": 25774
+    },
+    {
+      "path": "html5game/v2/uniforms_default_CO.txt",
+      "size": 76063
+    }
+  ],
+  "totalBytes": 14627510
+}
