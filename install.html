@@ -79,8 +79,24 @@ function localUrl(path){return new URL("play/"+path,location.href).href;}
 async function downloadToCache(cache,remote,local,size,onProgress){
  const response=await fetch(remote,{cache:"no-store"});
  if(!response.ok)throw Error("Download failed for "+remote.split("/").pop()+" (HTTP "+response.status+").");
- const copy=response.clone();
- await cache.put(local,copy);
+ // GitHub's raw file host may label JavaScript as text/plain. Safari can reject
+ // that response when used by a script element, even though direct navigation works.
+ // Store game assets with MIME types matching their local file extensions.
+ const headers=new Headers(response.headers);
+ const extension=local.split("?")[0].split(".").pop().toLowerCase();
+ const mime={
+  js:"application/javascript; charset=utf-8",
+  json:"application/json; charset=utf-8",
+  txt:"text/plain; charset=utf-8",
+  ini:"text/plain; charset=utf-8",
+  csv:"text/csv; charset=utf-8",
+  xml:"application/xml; charset=utf-8",
+  png:"image/png",
+  ogg:"audio/ogg"
+ }[extension];
+ if(mime)headers.set("Content-Type",mime);
+ const normalized=new Response(response.body,{status:response.status,statusText:response.statusText,headers});
+ await cache.put(local,normalized);
  onProgress(size||Number(response.headers.get("content-length"))||0);
 }
 async function runInstall(){
