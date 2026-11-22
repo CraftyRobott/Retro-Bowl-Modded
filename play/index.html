@@ -39,13 +39,27 @@ window.addEventListener("unhandledrejection",function(event){
 window.__rbScriptsReady=(async function(){
  async function readInstalledAsset(path){
   const assetURL=new URL(path,location.href).href;
-  for(const name of await caches.keys()){
-   if(!name.startsWith("rb-game-install-"))continue;
+  const names=(await caches.keys()).filter(name=>name.startsWith("rb-game-install-"));
+  for(const name of names){
    const cache=await caches.open(name);
    const response=await cache.match(assetURL);
    if(response)return {cache,response,url:assetURL};
   }
-  throw Error("Installed game asset is missing: "+path+". Reinstall while online.");
+  // Repair a single missing upstream game file in-place instead of forcing
+  // the user to download the entire game again.
+  if(!names.length)throw Error("No installed game cache was found. Run the installer while online.");
+  const cache=await caches.open(names[names.length-1]);
+  const upstream="https://raw.githubusercontent.com/ReznorsRevenge1/retro-bowl-college/d5e211826acf4b15d537a1cd84b663ab66714254/"+path;
+  let response;
+  try{response=await fetch(upstream,{cache:"no-store"});}
+  catch(error){throw Error("Installed game asset is missing: "+path+". Connect to Wi-Fi and reopen the game once to repair this file.");}
+  if(!response.ok)throw Error("Could not repair missing game asset "+path+" (HTTP "+response.status+"). Reopen while connected to Wi-Fi.");
+  const headers=new Headers(response.headers);
+  if(path.endsWith(".js"))headers.set("Content-Type","application/javascript; charset=utf-8");
+  const repaired=new Response(await response.arrayBuffer(),{status:200,headers});
+  await cache.put(assetURL,repaired.clone());
+  window.__rbSetStatus("Repaired missing game asset: "+path);
+  return {cache,response:repaired,url:assetURL};
  }
  async function loadInstalledScript(path){
   const asset=await readInstalledAsset(path);
