@@ -1,39 +1,137 @@
 <!doctype html>
-<html lang="en">
-<head>
+<html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#101411"><link rel="stylesheet" href="./styles.css">
-<title>Your Retro Bowl Build</title>
+<title>Install Retro Bowl College</title>
 <style>
-.install-panel{background:#171e19;border:1px solid #2b382e;border-radius:8px;padding:28px;margin:25px 0}
-.install-panel h2{font-size:30px;margin:0 0 15px}
-.install-panel ul{padding:0;list-style:none}
-.install-panel li{padding:12px 0;border-bottom:1px solid #2b382e;font-size:13px}
-.warning{padding:14px;background:#30271e;border-left:3px solid #f28a50;color:#e8c9a7;font-size:12px;line-height:1.65}
-.back{display:inline-block;margin-top:20px;color:#c7f36b;text-decoration:none;font-size:12px;font-weight:700}
-</style>
-</head>
+.install-panel{background:#171e19;border:1px solid #2b382e;border-radius:8px;padding:24px;margin:24px 0}
+.install-panel h2{font:700 30px 'Barlow Condensed',sans-serif;text-transform:uppercase;margin:0 0 12px}
+.install-panel p{color:#aab4ab;font-size:13px;line-height:1.65}
+.progress-track{height:9px;background:#29332b;border-radius:20px;overflow:hidden;margin:17px 0 9px}
+.progress-fill{height:100%;width:0;background:#c7f36b;transition:width .15s}
+.progress-meta{display:flex;justify-content:space-between;color:#929e94;font-size:11px}
+.action{display:inline-block;border:0;border-radius:4px;padding:15px 20px;background:#c7f36b;color:#172014;font-weight:800;font-size:12px;text-decoration:none;cursor:pointer}
+.action:disabled{opacity:.4;cursor:wait}
+.secondary{background:transparent;border:1px solid #536252;color:#c7f36b;margin-left:8px}
+.warning{padding:14px;background:#30271e;border-left:3px solid #f28a50;color:#e8c9a7;font-size:12px;line-height:1.65;margin-top:18px}
+.file-list{list-style:none;padding:0;margin:10px 0 18px;max-height:170px;overflow:auto}
+.file-list li{padding:8px 0;border-bottom:1px solid #2b382e;color:#d5ded5;font-size:12px}
+.error{color:#ffb18e!important}.ok{color:#c7f36b!important}
+@media(max-width:600px){.install-panel{padding:18px}.secondary{margin:10px 0 0}}
+</style></head>
 <body><main class="shell">
-<header class="topbar"><a class="brand" href="./"><span class="brand-mark">RB</span><span>RETRO BOWL <b>MODDED</b></span></a><span class="pill">BUILD SUMMARY</span></header>
-<section class="hero"><p class="eyebrow">CONFIGURATION CREATED</p><h1>Your<br><em>lineup.</em></h1><p class="intro">Your selection has been saved in this link. The files below are the mods selected from the public repository.</p></section>
-<section class="install-panel"><h2>Selected mods</h2><ul id="mods"><li>Reading configuration…</li></ul>
-<div class="warning"><strong>Game installer is not connected yet.</strong><br>This site currently discovers mods and creates a build configuration. It does not yet include the Retro Bowl College game itself or install a playable offline copy. The game files must be provided separately before we can finish the offline installer.</div>
-<a class="back" href="./">← Change your selection</a></section>
+<header class="topbar"><a class="brand" href="./"><span class="brand-mark">RB</span><span>RETRO BOWL <b>MODDED</b></span></a><span class="pill">OFFLINE INSTALLER</span></header>
+<section class="hero"><p class="eyebrow">ONE-TIME SETUP</p><h1>Take your<br><em>season offline.</em></h1><p class="intro">Download the game and your selected mods while connected to Wi-Fi. Once installed, the game loads from this device without needing Poki, GitHub, or a network connection during play.</p></section>
+<section class="install-panel">
+<h2>Your installation</h2><ul class="file-list" id="selected-mods"><li>Reading build configuration…</li></ul>
+<p id="install-note">The installer will download the game engine and its local assets, then save your selected mods into the game folder.</p>
+<div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+<div class="progress-meta"><span id="progress-label">Ready to install</span><span id="progress-percent">0%</span></div>
+<p id="status" role="status">Connect to Wi-Fi before starting. Keep this page open until installation finishes.</p>
+<button class="action" id="install">Install for offline play</button>
+<a class="action secondary" id="launch" href="./play/" hidden>Launch game</a>
+<div class="warning"><strong>Important:</strong> the game files are downloaded directly from the public upstream repository into your browser's local Cache Storage. They are not copied into this website's GitHub repository. The upstream repository does not declare a license, so public access does not itself establish permission for offline caching or redistribution. This installer is a technical prototype, not a statement that those rights have been granted.</div>
+</section>
+<footer><span>RETRO BOWL MODDED</span><span>Independent community project · Not affiliated with the game developers</span></footer>
 </main>
 <script>
-const API="https://api.github.com/repos/CraftyRobott/Retro-Bowl-Modded/contents/mods?ref=main";
-(async()=>{
- const target=document.querySelector("#mods");
+"use strict";
+const GAME_MANIFEST="./game-manifest.json";
+const UPSTREAM_RAW="https://raw.githubusercontent.com/ReznorsRevenge1/retro-bowl-college/d5e211826acf4b15d537a1cd84b663ab66714254/";
+const MOD_TREE_API="https://api.github.com/repos/CraftyRobott/Retro-Bowl-Modded/git/trees/main?recursive=1";
+const MOD_RAW="https://raw.githubusercontent.com/CraftyRobott/Retro-Bowl-Modded/main/";
+const $=id=>document.getElementById(id);
+const btn=$("install"),status=$("status"),bar=$("progress-fill"),label=$("progress-label"),percent=$("progress-percent");
+let config;
+function decodeBuild(){
+ const raw=location.hash.slice(1).replace(/-/g,"+").replace(/_/g,"/");
+ const padded=raw+"=".repeat((4-raw.length%4)%4);
+ const value=JSON.parse(decodeURIComponent(escape(atob(padded))));
+ if(value.schema!==3||value.game!=="retro-bowl-college"||!Array.isArray(value.mods))throw Error("This build link is invalid or outdated. Return to the mod selector and create a new build.");
+ return value;
+}
+function setProgress(done,total,text){
+ const pct=total?Math.min(100,Math.round(done/total*100)):0;
+ bar.style.width=pct+"%";percent.textContent=pct+"%";label.textContent=text;
+}
+async function waitForServiceWorker(){
+ if(!("serviceWorker" in navigator)||!("caches" in window))throw Error("This browser does not support offline installation. Open this site in Safari or a supported browser.");
+ const reg=await navigator.serviceWorker.register("./sw.js");
+ await navigator.serviceWorker.ready;
+ if(!navigator.serviceWorker.controller){
+  await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error("The offline worker is still starting. Reload this page once, then start the install again.")),8000);navigator.serviceWorker.addEventListener("controllerchange",()=>{clearTimeout(timer);resolve();},{once:true});});
+ }
+ return reg;
+}
+async function getModFiles(){
+ const response=await fetch(MOD_TREE_API,{headers:{"Accept":"application/vnd.github+json"}});
+ if(!response.ok)throw Error("Unable to read your public mods repository (HTTP "+response.status+").");
+ const tree=await response.json();
+ if(tree.truncated)throw Error("The mods repository tree is too large to process.");
+ const all=tree.tree.filter(x=>x.type==="blob"&&x.path.startsWith("mods/")&&!x.path.endsWith("/README.md"));
+ const js=all.filter(x=>x.path.toLowerCase().endsWith(".js"));
+ const chosen=config.mods.map(id=>js.find(file=>file.path.slice(5)===id)).filter(Boolean);
+ if(chosen.length!==config.mods.length)throw Error("One or more selected mods are no longer in the public repository. Rebuild your selection.");
+ const support=all.filter(x=>!x.path.toLowerCase().endsWith(".js"));
+ return [...chosen,...support];
+}
+function localUrl(path){return new URL("play/"+path,location.href).href;}
+async function downloadToCache(cache,remote,local,size,onProgress){
+ const response=await fetch(remote,{cache:"no-store"});
+ if(!response.ok)throw Error("Download failed for "+remote.split("/").pop()+" (HTTP "+response.status+").");
+ const copy=response.clone();
+ await cache.put(local,copy);
+ onProgress(size||Number(response.headers.get("content-length"))||0);
+}
+async function runInstall(){
+ btn.disabled=true;status.classList.remove("error","ok");$("launch").hidden=true;
+ let cacheName="rb-game-install-"+Date.now();
  try{
-  const encoded=location.hash.slice(1).replace(/-/g,"+").replace(/_/g,"/");
-  const config=JSON.parse(decodeURIComponent(escape(atob(encoded))));
-  if(config.schema!==2||config.game!=="retro-bowl-college"||!Array.isArray(config.mods))throw Error("Invalid build link");
-  const response=await fetch(API,{headers:{"Accept":"application/vnd.github+json"}});
-  if(!response.ok)throw Error("Could not retrieve the public mod list (HTTP "+response.status+")");
-  const files=await response.json();
-  const chosen=config.mods.map(id=>files.find(file=>file.type==="file"&&file.name.toLowerCase()===String(id).toLowerCase()+".js")).filter(Boolean);
-  if(!chosen.length)throw Error("None of the selected mods are currently available. They may have been renamed or removed.");
-  target.innerHTML=chosen.map(file=>"<li>"+file.name+"</li>").join("");
- }catch(error){target.textContent=error.message;}
-})();
+  status.textContent="Preparing local storage and offline support…";
+  await waitForServiceWorker();
+  if(navigator.storage&&navigator.storage.persist)await navigator.storage.persist().catch(()=>false);
+  const game=await fetch(GAME_MANIFEST).then(r=>{if(!r.ok)throw Error("Could not load the game asset manifest.");return r.json();});
+  const modFiles=await getModFiles();
+  const totalFiles=game.files.length+modFiles.length;
+  const totalBytes=game.totalBytes+modFiles.reduce((n,f)=>n+(f.size||0),0);
+  const cache=await caches.open(cacheName);
+  let done=0,completed=0;
+  $("install-note").textContent="Downloading "+totalFiles+" files ("+(totalBytes/1048576).toFixed(1)+" MB estimated). Keep this page open and stay on Wi-Fi.";
+  const jobs=[
+   ...game.files.map(file=>({remote:UPSTREAM_RAW+file.path,local:localUrl(file.path),size:file.size})),
+   ...modFiles.map(file=>({remote:MOD_RAW+file.path,local:localUrl("engine/mods/"+file.path.slice(5)),size:file.size}))
+  ];
+  let cursor=0;let failure=null;
+  async function worker(){
+   while(!failure){
+    const index=cursor++;if(index>=jobs.length)return;
+    const job=jobs[index];
+    try{
+     await downloadToCache(cache,job.remote,job.local,job.size,bytes=>{done+=bytes;completed++;setProgress(done,totalBytes,"Downloading "+completed+" of "+totalFiles+" files");});
+    }catch(error){failure=error;return;}
+   }
+  }
+  await Promise.all(Array.from({length:4},worker));
+  if(failure)throw failure;
+  const selected={schema:1,mods:config.mods.map(id=>id+".") .map(id=>id.slice(0,-1))};
+  await cache.put(localUrl("engine/mods/selected.json"),new Response(JSON.stringify(selected),{headers:{"Content-Type":"application/json"}}));
+  const marker={schema:1,cacheName,installedAt:new Date().toISOString(),upstream:"ReznorsRevenge1/retro-bowl-college",upstreamRef:"d5e211826acf4b15d537a1cd84b663ab66714254",mods:config.mods};
+  await cache.put(localUrl("installed.json"),new Response(JSON.stringify(marker),{headers:{"Content-Type":"application/json"}}));
+  const oldCaches=(await caches.keys()).filter(name=>name.startsWith("rb-game-install-")&&name!==cacheName);
+  await Promise.all(oldCaches.map(name=>caches.delete(name)));
+  setProgress(totalBytes,totalBytes,"Installation complete");
+  status.textContent="Installed successfully. The game files and selected mods are now stored locally.";
+  status.classList.add("ok");btn.textContent="Installed";$("launch").hidden=false;
+ }catch(error){
+  await caches.delete(cacheName).catch(()=>{});
+  status.textContent=error.message;status.classList.add("error");
+  label.textContent="Installation stopped";btn.disabled=false;
+ }
+}
+try{
+ config=decodeBuild();
+ $("selected-mods").innerHTML=config.mods.length?config.mods.map(id=>"<li>"+id.replace(/&/g,"&amp;").replace(/</g,"&lt;")+"</li>").join(""):"<li>Base game only — no mods selected</li>";
+ btn.addEventListener("click",runInstall);
+ if("caches" in window)caches.match(new URL("play/installed.json",location.href).href).then(r=>{if(r){$("launch").hidden=false;status.textContent="An offline installation is already present. Installing again will replace it.";}}).catch(()=>{});
+}catch(error){status.textContent=error.message;status.classList.add("error");btn.disabled=true;}
 </script></body></html>
