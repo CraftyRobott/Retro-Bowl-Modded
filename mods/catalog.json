@@ -1,20 +1,102 @@
 [
   {
-    "id": "five-stars",
-    "name": "Five-Star Players",
-    "description": "Sets player ratings and potential to five stars.",
-    "category": "Players",
-    "icon": "5★",
-    "file": "five_stars_mod.js",
-    "enabled": true
+    "id": "5_second_quarters",
+    "name": "5-Second Quarters",
+    "description": "Shortens the game clock to create faster, tighter matches.",
+    "category": "Gameplay",
+    "icon": "5s",
+    "source": "5_second_quarters.js",
+    "assets": []
   },
   {
-    "id": "scoreboard-test",
-    "name": "Scoreboard Test",
-    "description": "Experimental scoreboard drawing patch.",
-    "category": "Interface",
-    "icon": "UI",
-    "file": "scoreboard_test.js",
-    "enabled": true
+    "id": "competitions_override",
+    "name": "College Competitions",
+    "description": "Loads your custom college competition structure.",
+    "category": "College data",
+    "icon": "CFB",
+    "source": "competitions_override.js",
+    "assets": [
+      "data/competitions_co.txt"
+    ]
+  },
+  {
+    "id": "conferences_override",
+    "name": "Conference Override",
+    "description": "Replaces the default conference data with your college setup.",
+    "category": "College data",
+    "icon": "C",
+    "source": "conferences_override.js",
+    "assets": [
+      "data/conferences_co.txt"
+    ]
+  },
+  {
+    "id": "full_screen_match_scaling",
+    "name": "Integer Match Scaling",
+    "description": "Improves full-screen match presentation while keeping pixel edges crisp.",
+    "category": "Visual",
+    "icon": "PIX",
+    "source": "full_screen_match_scaling.js",
+    "assets": []
+  },
+  {
+    "id": "ios_custom_fields",
+    "name": "Custom iOS Fields",
+    "description": "Adds custom field artwork for supported teams on iOS.",
+    "category": "Visual",
+    "icon": "FIELD",
+    "source": "ios_custom_fields.js",
+    "assets": [
+      "fields/40.png"
+    ]
+  },
+  {
+    "id": "no_achivement_popups",
+    "name": "No Achievement Popups",
+    "description": "Hides achievement notifications without disabling achievement progress.",
+    "category": "Quality of life",
+    "icon": "QOL",
+    "source": "no_achivement_popups.js",
+    "assets": []
+  },
+  {
+    "id": "sec_abc_scorebug",
+    "name": "SEC on ABC Scorebug",
+    "description": "Adds a compact broadcast-style scorebug inspired by SEC on ABC.",
+    "category": "Visual",
+    "icon": "TV",
+    "source": "sec_abc_scorebug.js",
+    "assets": []
+  },
+  {
+    "id": "select_any_starting_team",
+    "name": "All Starting Teams",
+    "description": "Lets you choose from every team when starting a new college career.",
+    "category": "Gameplay",
+    "icon": "ALL",
+    "source": "select_any_starting_team.js",
+    "assets": []
+  },
+  {
+    "id": "teams_co_overide",
+    "name": "College Team Data",
+    "description": "Overrides the college team database with your custom team data.",
+    "category": "College data",
+    "icon": "TEAM",
+    "source": "teams_co_overide.js",
+    "assets": [
+      "data/Teams_CO.txt"
+    ]
+  },
+  {
+    "id": "uniforms_default_overide",
+    "name": "Default College Uniforms",
+    "description": "Overrides default uniform data with your custom uniform database.",
+    "category": "Customization",
+    "icon": "KIT",
+    "source": "uniforms_default_overide.js",
+    "assets": [
+      "data/uniforms_default_CO.txt"
+    ]
   }
 ]
