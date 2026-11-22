@@ -2,30 +2,37 @@
 
 A mod-selection frontend for creating personal Retro Bowl College web-app installations.
 
-## Current status
+## Current milestone
 
-This is the first website scaffold:
-- Responsive mod selector UI.
-- Catalog-driven mod list in `mods/catalog.json`.
-- Build configuration URL generation.
-- Initial service-worker shell cache.
+- Responsive mod selector using the real mod catalog from [CraftyRobott/RetroBowl_mods](https://github.com/CraftyRobott/RetroBowl_mods).
+- Ten current root-level mods listed with their filenames and known companion assets.
+- Selection is encoded into a shareable configuration URL.
+- Configuration receipt page displays the selected mods.
+- Initial PWA shell and service-worker caching for the configurator.
 
-## Important integration work still required
+## Important: game installer is not connected yet
 
-1. Verify the current contents and exact paths of the private `CraftyRobott/RetroBowl_mods` repository, then populate the catalog with every supported mod and its real filename/metadata.
-2. Add a private distribution/build pipeline for the game files. Do **not** commit commercial game files to this public repository.
-3. Implement the `/install/` flow that fetches the selected mod files during first installation, stores them locally (IndexedDB/Cache Storage), and starts the game from local assets.
-4. Update the game loader to use the frozen selected-mod manifest instead of directory auto-discovery.
-5. Ensure gameplay code makes no network requests and verify offline launch after installation.
+The current site **does not generate or launch a playable game**. The install page is a configuration receipt only. The next milestone needs to:
 
-The public repository contains only the website shell and catalog. Keep game assets and any files you are not licensed to redistribute out of this repository.
+1. Integrate a game build in a way that does not publish proprietary game files in this public repository.
+2. Package the selected mod JavaScript and all required data/image assets into each build.
+3. Change the game loader to read a fixed selected-mod manifest instead of discovering every JavaScript file.
+4. Cache all game resources locally on first install and verify offline launch.
+5. Audit the game and mods for runtime network requests.
+
+The website itself is not the game. Do not put commercial game assets in this public repository.
+
+## Catalog and dependencies
+
+The catalog is in `mods/catalog.json`. Data-driven mods currently list these companion assets:
+- College Competitions: `data/competitions_co.txt`
+- Conference Override: `data/conferences_co.txt`
+- Custom iOS Fields: `fields/40.png`
+- College Team Data: `data/Teams_CO.txt`
+- Default College Uniforms: `data/uniforms_default_CO.txt`
+
+The custom-field mod references a specific field image; confirm the complete team/image mapping before packaging.
 
 ## Local preview
 
-Serve this folder over HTTP (not `file://`), for example:
-
-```sh
-python -m http.server 8000
-```
-
-Then open http://localhost:8000.
+Run `python -m http.server 8000` from the repository root and visit http://localhost:8000.
