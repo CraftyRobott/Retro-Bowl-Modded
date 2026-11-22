@@ -16,7 +16,7 @@
 .warning{padding:14px;background:#30271e;border-left:3px solid #f28a50;color:#e8c9a7;font-size:12px;line-height:1.65;margin-top:18px}
 .file-list{list-style:none;padding:0;margin:10px 0 18px;max-height:170px;overflow:auto}
 .file-list li{padding:8px 0;border-bottom:1px solid #2b382e;color:#d5ded5;font-size:12px}
-.error{color:#ffb18e!important}.ok{color:#c7f36b!important}
+.error{color:#ffb18e!important}.ok{color:#c7f36b!important}#launch[hidden]{display:none}
 @media(max-width:600px){.install-panel{padding:18px}.secondary{margin:10px 0 0}}
 </style></head>
 <body><main class="shell">
@@ -113,7 +113,7 @@ async function runInstall(){
   }
   await Promise.all(Array.from({length:4},worker));
   if(failure)throw failure;
-  const selected={schema:1,mods:config.mods.map(id=>id+".") .map(id=>id.slice(0,-1))};
+  const selected={schema:1,mods:config.mods};
   await cache.put(localUrl("engine/mods/selected.json"),new Response(JSON.stringify(selected),{headers:{"Content-Type":"application/json"}}));
   const marker={schema:1,cacheName,installedAt:new Date().toISOString(),upstream:"ReznorsRevenge1/retro-bowl-college",upstreamRef:"d5e211826acf4b15d537a1cd84b663ab66714254",mods:config.mods};
   await cache.put(localUrl("installed.json"),new Response(JSON.stringify(marker),{headers:{"Content-Type":"application/json"}}));
@@ -130,7 +130,7 @@ async function runInstall(){
 }
 try{
  config=decodeBuild();
- $("selected-mods").innerHTML=config.mods.length?config.mods.map(id=>"<li>"+id.replace(/&/g,"&amp;").replace(/</g,"&lt;")+"</li>").join(""):"<li>Base game only — no mods selected</li>";
+ $("selected-mods").innerHTML=config.mods.length?config.mods.map(id=>"<li>"+id.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")+"</li>").join(""):"<li>Base game only — no mods selected</li>";
  btn.addEventListener("click",runInstall);
  if("caches" in window)caches.match(new URL("play/installed.json",location.href).href).then(r=>{if(r){$("launch").hidden=false;status.textContent="An offline installation is already present. Installing again will replace it.";}}).catch(()=>{});
 }catch(error){status.textContent=error.message;status.classList.add("error");btn.disabled=true;}
