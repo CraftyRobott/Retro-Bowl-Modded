@@ -41,10 +41,41 @@ window.addEventListener("unhandledrejection",function(event){
  console.error("[Offline diagnostic] Unhandled rejection:",detail);
 });
 </script>
-<script src="html5game/RetroBowl.js"
- onload="window.__rbDiagnostics.engineScriptLoaded=true;window.__rbSetStatus('RetroBowl.js loaded.\\nJSON_game: '+typeof window.JSON_game+'\\nGameMaker_Init: '+typeof window.GameMaker_Init);"
- onerror="window.__rbDiagnostics.engineScriptError='The browser failed to load the RetroBowl.js script element.';window.__rbSetStatus(window.__rbDiagnostics.engineScriptError);"></script>
-<script src="engine/mods/loader.js"></script>
+<script>
+window.__rbScriptsReady=(async function(){
+ const engineURL=new URL("html5game/RetroBowl.js",location.href).href;
+ let gameCache=null,engineResponse=null;
+ for(const name of await caches.keys()){
+  if(!name.startsWith("rb-game-install-"))continue;
+  const cache=await caches.open(name);
+  const found=await cache.match(engineURL);
+  if(found){gameCache=cache;engineResponse=found;break;}
+ }
+ if(!engineResponse)throw Error("The installed RetroBowl.js file is missing from offline storage. Run the installer again.");
+ const headers=new Headers(engineResponse.headers);
+ headers.set("Content-Type","application/javascript; charset=utf-8");
+ const bytes=await engineResponse.arrayBuffer();
+ await gameCache.put(engineURL,new Response(bytes,{status:200,headers}));
+ window.__rbSetStatus("Repaired cached game script MIME type.\\nLoading RetroBowl.js...");
+ function loadScript(src){
+  return new Promise((resolve,reject)=>{
+   const script=document.createElement("script");
+   script.src=src;
+   script.onload=resolve;
+   script.onerror=()=>reject(Error("Safari could not load "+src));
+   document.head.appendChild(script);
+  });
+ }
+ await loadScript(engineURL);
+ window.__rbDiagnostics.engineScriptLoaded=true;
+ window.__rbSetStatus("RetroBowl.js loaded.\\nJSON_game: "+typeof window.JSON_game+"\\nGameMaker_Init: "+typeof window.GameMaker_Init+"\\nLoading mod loader...");
+ await loadScript(new URL("engine/mods/loader.js",location.href).href);
+})().catch(error=>{
+ window.__rbDiagnostics.engineScriptError=error.message;
+ window.__rbSetStatus("Startup script error: "+error.message);
+ throw error;
+});
+</script>
 <script>
 async function preloadGameMakerTextFiles(){
  // GameMaker reads data files with synchronous XHR. Chrome does not consistently
@@ -85,6 +116,7 @@ window.addEventListener("load",async function(){
  const panel=document.getElementById("offline-error");
  try{
   window.__rbSetStatus("Page load event fired.\\nRetroBowl.js load event: "+!!window.__rbDiagnostics.engineScriptLoaded+"\\nJSON_game: "+typeof window.JSON_game+"\\nGameMaker_Init: "+typeof window.GameMaker_Init+"\\nWaiting for mod loader...");
+  await window.__rbScriptsReady;
   await window.RBModsReady;
   window.__rbSetStatus("Mod loader ready.\\nPreparing GameMaker data...");
   await preloadGameMakerTextFiles();
