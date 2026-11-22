@@ -9,7 +9,7 @@
 html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#000;color:#ccc}
 body{position:fixed;inset:0}#gm4html5_div_id{position:absolute;inset:0;margin:0;padding:0;border:0}
 canvas{image-rendering:pixelated;-webkit-interpolation-mode:nearest-neighbor;touch-action:none;-ms-touch-action:none;margin:0;padding:0;border:0}
-#offline-error{position:absolute;z-index:10;inset:0;display:none;place-items:center;background:#101411;color:#f2f4ed;font:14px system-ui;text-align:center;padding:25px}
+#offline-error{position:absolute;z-index:10;inset:0;display:none;place-items:center;background:#101411;color:#f2f4ed;font:14px system-ui;text-align:center;padding:25px;white-space:pre-wrap}
 </style></head><body>
 <div id="gm4html5_div_id"><img src="html5game/splash.png" id="GM4HTML5_loadingscreen" alt="" style="display:none">
 <canvas id="canvas" width="853" height="480" style="position:absolute;top:50%;left:50%;bottom:-50%;right:-50%;transform:translate(-50%,-50%)"><p>Canvas is not supported.</p></canvas></div>
@@ -21,8 +21,41 @@ window.PokiSDK_OK=true;window.PokiSDK_loadState=2;
 <script src="html5game/RetroBowl.js"></script>
 <script src="engine/mods/loader.js"></script>
 <script>
+async function preloadGameMakerTextFiles(){
+ // GameMaker reads data files with synchronous XHR. Chrome does not consistently
+ // send synchronous XHR through service workers, so seed its own localStorage
+ // file layer before GameMaker_Init() runs.
+ if(!window.JSON_game||!JSON_game.Options)throw Error("Game data configuration is unavailable.");
+ const options=JSON_game.Options;
+ const displayName=(options.DisplayName||"").replace(/[^a-zA-Z0-9_]/g,"")||"GameMaker";
+ const prefix=displayName+"."+options.gameId+".";
+ const manifestResponse=await fetch("../game-manifest.json");
+ if(!manifestResponse.ok)throw Error("Could not read the installed game manifest.");
+ const manifest=await manifestResponse.json();
+ const textFiles=manifest.files.filter(file=>/^html5game\//i.test(file.path)&&/\.(txt|json|ini|csv|xml)$/i.test(file.path));
+ if(!textFiles.some(file=>file.path==="html5game/LanguageUS.txt"))throw Error("The game manifest is missing LanguageUS.txt. Reinstall the game.");
+ let loaded=0;
+ for(const file of textFiles){
+  const url=new URL(file.path,location.href);
+  const response=await caches.match(url.href);
+  if(!response)throw Error("Offline data file is missing: "+file.path+". Reinstall the game while online.");
+  const contents=await response.text();
+  try{localStorage.setItem(prefix+file.path.slice("html5game/".length),contents);}
+  catch(error){throw Error("Could not prepare game data in browser storage. Free some website storage and reinstall. ("+error.message+")");}
+  loaded++;
+ }
+ console.info("[Offline] Prepared "+loaded+" GameMaker text data files in local storage.");
+}
 window.addEventListener("load",async function(){
- try{await window.RBModsReady;if(typeof GameMaker_Init!=="function")throw Error("Game engine did not initialize.");GameMaker_Init();}
- catch(error){const panel=document.getElementById("offline-error");panel.style.display="grid";panel.textContent="Could not start the offline game: "+error.message;}
+ const panel=document.getElementById("offline-error");
+ try{
+  await window.RBModsReady;
+  await preloadGameMakerTextFiles();
+  if(typeof GameMaker_Init!=="function")throw Error("Game engine did not initialize.");
+  GameMaker_Init();
+ }catch(error){
+  panel.style.display="grid";
+  panel.textContent="Could not start the offline game: "+error.message;
+ }
 });
 </script></body></html>
