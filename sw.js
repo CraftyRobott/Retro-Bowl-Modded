@@ -1,4 +1,4 @@
-const SHELL_CACHE="rb-modded-shell-v19";
+const SHELL_CACHE="rb-modded-shell-v20";
 const SHELL=["./","./index.html","./builder.html","./install.html","./styles.css","./app.js","./manifest.webmanifest","./game-manifest.json","./play/","./play/index.html","./play/manifest.webmanifest","./play/engine/mods/loader.js"];
 self.addEventListener("install",event=>event.waitUntil((async()=>{
  const cache=await caches.open(SHELL_CACHE);
