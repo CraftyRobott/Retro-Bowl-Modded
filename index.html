@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="rb-checking">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -8,6 +8,18 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="stylesheet" href="./styles.css">
   <title>Retro Bowl Modded</title>
+  <style>html.rb-checking body{visibility:hidden}</style>
+  <script>
+  (function(){
+    function showBuilder(){document.documentElement.classList.remove("rb-checking");}
+    if(!("caches" in window)){showBuilder();return;}
+    const markerURL=new URL("./play/installed.json",location.href).href;
+    caches.match(markerURL).then(function(marker){
+      if(marker){location.replace(new URL("./play/",location.href).href);return;}
+      showBuilder();
+    }).catch(showBuilder);
+  })();
+  </script>
 </head>
 <body>
   <main class="shell">
