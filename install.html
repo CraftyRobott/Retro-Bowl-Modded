@@ -47,7 +47,7 @@ function decodeBuild(){
  const raw=location.hash.slice(1).replace(/-/g,"+").replace(/_/g,"/");
  const padded=raw+"=".repeat((4-raw.length%4)%4);
  const value=JSON.parse(decodeURIComponent(escape(atob(padded))));
- if(value.schema!==3||value.game!=="retro-bowl-college"||!Array.isArray(value.mods))throw Error("This build link is invalid or outdated. Return to the mod selector and create a new build.");
+ if(![3,4].includes(value.schema)||value.game!=="retro-bowl-college"||!Array.isArray(value.mods))throw Error("This build link is invalid or outdated. Return to the mod selector and create a new build.");
  return value;
 }
 function setProgress(done,total,text){
@@ -74,6 +74,14 @@ async function getModFiles(){
  if(chosen.length!==config.mods.length)throw Error("One or more selected mods are no longer in the public repository. Rebuild your selection.");
  const support=all.filter(x=>!x.path.toLowerCase().endsWith(".js"));
  return [...chosen,...support];
+}
+function openCustomDB(){return new Promise((resolve,reject)=>{const request=indexedDB.open("rb-modded-custom-mods",1);request.onupgradeneeded=()=>request.result.createObjectStore("mods",{keyPath:"id"});request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});}
+async function getCustomMods(){
+ const entries=Array.isArray(config.customMods)?config.customMods:[];if(!entries.length)return [];
+ const db=await openCustomDB();
+ return new Promise((resolve,reject)=>{const tx=db.transaction("mods","readonly"),store=tx.objectStore("mods"),output=[];let remaining=entries.length;
+  for(const entry of entries){const request=store.get(entry.id);request.onsuccess=()=>{if(!request.result){db.close();reject(Error("Custom mod "+entry.name+" is missing from this browser. Return to the builder and upload it again."));return;}output.push({id:entry.id,name:entry.name,source:request.result.source});if(--remaining===0){db.close();resolve(output);}};request.onerror=()=>{db.close();reject(request.error);};}
+ });
 }
 function localUrl(path){return new URL("play/"+path,location.href).href;}
 async function downloadToCache(cache,remote,local,size,onProgress){
@@ -108,14 +116,16 @@ async function runInstall(){
   if(navigator.storage&&navigator.storage.persist)await navigator.storage.persist().catch(()=>false);
   const game=await fetch(GAME_MANIFEST).then(r=>{if(!r.ok)throw Error("Could not load the game asset manifest.");return r.json();});
   const modFiles=await getModFiles();
-  const totalFiles=game.files.length+modFiles.length;
-  const totalBytes=game.totalBytes+modFiles.reduce((n,f)=>n+(f.size||0),0);
+  const customFiles=await getCustomMods();
+  const totalFiles=game.files.length+modFiles.length+customFiles.length;
+  const totalBytes=game.totalBytes+modFiles.reduce((n,f)=>n+(f.size||0),0)+customFiles.reduce((n,f)=>n+new Blob([f.source]).size,0);
   const cache=await caches.open(cacheName);
   let done=0,completed=0;
   $("install-note").textContent="Downloading "+totalFiles+" files ("+(totalBytes/1048576).toFixed(1)+" MB estimated). Keep this page open and stay on Wi-Fi.";
   const jobs=[
    ...game.files.map(file=>({remote:UPSTREAM_RAW+file.path,local:localUrl(file.path),size:file.size})),
-   ...modFiles.map(file=>({remote:MOD_RAW+file.path,local:localUrl("engine/mods/"+file.path.slice(5)),size:file.size}))
+   ...modFiles.map(file=>({remote:MOD_RAW+file.path,local:localUrl("engine/mods/"+file.path.slice(5)),size:file.size})),
+   ...customFiles.map(file=>({custom:true,source:file.source,local:localUrl("engine/mods/custom/"+file.id+".js"),size:new Blob([file.source]).size}))
   ];
   let cursor=0;let failure=null;
   async function worker(){
@@ -123,15 +133,16 @@ async function runInstall(){
     const index=cursor++;if(index>=jobs.length)return;
     const job=jobs[index];
     try{
-     await downloadToCache(cache,job.remote,job.local,job.size,bytes=>{done+=bytes;completed++;setProgress(done,totalBytes,"Downloading "+completed+" of "+totalFiles+" files");});
+     if(job.custom){await cache.put(job.local,new Response(job.source,{headers:{"Content-Type":"application/javascript; charset=utf-8"}}));done+=job.size;completed++;setProgress(done,totalBytes,"Saving custom mod "+completed+" of "+totalFiles+" files");}
+     else await downloadToCache(cache,job.remote,job.local,job.size,bytes=>{done+=bytes;completed++;setProgress(done,totalBytes,"Downloading "+completed+" of "+totalFiles+" files");});
     }catch(error){failure=error;return;}
    }
   }
   await Promise.all(Array.from({length:4},worker));
   if(failure)throw failure;
-  const selected={schema:1,mods:config.mods};
+  const selected={schema:1,mods:[...config.mods,...customFiles.map(file=>"custom/"+file.id+".js")]};
   await cache.put(localUrl("engine/mods/selected.json"),new Response(JSON.stringify(selected),{headers:{"Content-Type":"application/json"}}));
-  const marker={schema:1,cacheName,installedAt:new Date().toISOString(),upstream:"ReznorsRevenge1/retro-bowl-college",upstreamRef:"d5e211826acf4b15d537a1cd84b663ab66714254",mods:config.mods};
+  const marker={schema:1,cacheName,installedAt:new Date().toISOString(),upstream:"ReznorsRevenge1/retro-bowl-college",upstreamRef:"d5e211826acf4b15d537a1cd84b663ab66714254",mods:selected.mods};
   await cache.put(localUrl("installed.json"),new Response(JSON.stringify(marker),{headers:{"Content-Type":"application/json"}}));
   const oldCaches=(await caches.keys()).filter(name=>name.startsWith("rb-game-install-")&&name!==cacheName);
   await Promise.all(oldCaches.map(name=>caches.delete(name)));
@@ -146,7 +157,8 @@ async function runInstall(){
 }
 try{
  config=decodeBuild();
- $("selected-mods").innerHTML=config.mods.length?config.mods.map(id=>"<li>"+id.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")+"</li>").join(""):"<li>Base game only — no mods selected</li>";
+ const selectedNames=config.mods.concat((config.customMods||[]).map(file=>"Custom: "+file.name));
+ $("selected-mods").innerHTML=selectedNames.length?selectedNames.map(id=>"<li>"+id.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")+"</li>").join(""):"<li>Base game only — no mods selected</li>";
  btn.addEventListener("click",runInstall);
  if("caches" in window)caches.match(new URL("play/installed.json",location.href).href).then(r=>{if(r){$("launch").hidden=false;status.textContent="An offline installation is already present. Installing again will replace it.";}}).catch(()=>{});
 }catch(error){status.textContent=error.message;status.classList.add("error");btn.disabled=true;}
