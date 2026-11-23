@@ -142,8 +142,8 @@ async function importCustomFiles(fileList,isFolder){
   status.textContent=name+" imported ("+stored.length+" files, "+scripts.length+" JavaScript file(s)). It will be included in your next offline installation.";
  }catch(error){status.textContent="Could not save "+name+": "+error.message;}
 }
-customFolderInput.addEventListener("change",async()=>{const files=Array.from(customFolderInput.files||[]);customFolderInput.value="";await importCustomFiles(files,true);});
-customFileInput.addEventListener("change",async()=>{const files=Array.from(customFileInput.files||[]);customFileInput.value="";for(const file of files)await importCustomFiles([file],false);});
+if(customFolderInput)customFolderInput.addEventListener("change",async()=>{const files=Array.from(customFolderInput.files||[]);customFolderInput.value="";await importCustomFiles(files,true);});
+if(customFileInput)customFileInput.addEventListener("change",async()=>{const files=Array.from(customFileInput.files||[]);customFileInput.value="";for(const file of files)await importCustomFiles([file],false);});
 build.addEventListener("click",()=>{
  const config={schema:5,game:"retro-bowl-college",modRepository:OWNER+"/"+REPO,mods:catalog.filter(m=>selected.has(m.id)).map(m=>m.id),customMods:customMods.map(({id,name})=>({id,name}))};
  const encoded=btoa(unescape(encodeURIComponent(JSON.stringify(config)))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
