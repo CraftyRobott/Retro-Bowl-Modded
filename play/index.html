@@ -11,15 +11,10 @@ body{position:fixed;inset:0}#gm4html5_div_id{position:absolute;inset:0;margin:0;
 canvas{image-rendering:pixelated;-webkit-interpolation-mode:nearest-neighbor;touch-action:none;-ms-touch-action:none;margin:0;padding:0;border:0}
 #offline-error{position:absolute;z-index:10;inset:0;display:none;place-items:center;background:#101411;color:#f2f4ed;font:14px system-ui;text-align:center;padding:25px;white-space:pre-wrap}
 
-#rb-menu-wrap{position:fixed;z-index:20;top:calc(env(safe-area-inset-top,0px) + 9px);right:calc(env(safe-area-inset-right,0px) + 9px);font-family:system-ui,sans-serif}#rb-menu-toggle{width:34px;height:34px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.22);border-radius:50%;background:rgba(12,16,13,.62);color:#fff;font-size:20px;line-height:1;opacity:.62;touch-action:manipulation;-webkit-tap-highlight-color:transparent}#rb-menu-toggle:active,#rb-menu-toggle:focus{opacity:1}#rb-menu-panel{position:absolute;right:0;top:42px;min-width:156px;padding:6px;border:1px solid #354238;border-radius:7px;background:rgba(16,20,17,.97);box-shadow:0 8px 28px #0009}#rb-menu-panel[hidden]{display:none}#rb-menu-panel a{display:block;padding:11px 12px;border-radius:4px;color:#eaf0e8;text-decoration:none;font-size:12px;font-weight:700;letter-spacing:.04em}#rb-menu-panel a:active{background:#2a382c;color:#c7f36b}
 </style></head><body>
 <div id="gm4html5_div_id"><img src="html5game/splash.png" id="GM4HTML5_loadingscreen" alt="" style="display:none">
 <canvas id="canvas" width="853" height="480" style="position:absolute;top:50%;left:50%;bottom:-50%;right:-50%;transform:translate(-50%,-50%)"><p>Canvas is not supported.</p></canvas></div>
 <div id="offline-error"></div>
-<div id="rb-menu-wrap"><button id="rb-menu-toggle" type="button" aria-label="Open game menu" aria-expanded="false">⋯</button><nav id="rb-menu-panel" hidden><a href="../builder.html">MOD BUILDER</a></nav></div>
-<script>
-(function(){const toggle=document.getElementById("rb-menu-toggle"),panel=document.getElementById("rb-menu-panel");toggle.addEventListener("click",function(){const open=panel.hidden;panel.hidden=!open;toggle.setAttribute("aria-expanded",String(open));});document.addEventListener("click",function(event){if(!event.target.closest("#rb-menu-wrap")){panel.hidden=true;toggle.setAttribute("aria-expanded","false");}});})();
-</script>
 <script>
 window.__rbSetStatus=function(message){console.info("[Offline diagnostic]",message);};
 window.PokiSDK={init:()=>Promise.resolve(),gameplayStart:()=>{},gameplayStop:()=>{},happyTime:()=>{},commercialBreak:()=>Promise.resolve(),rewardedBreak:()=>Promise.resolve(false),gameLoadingStart:()=>{},gameLoadingProgress:()=>{},gameLoadingFinished:()=>{},getURLParam:()=>null,setDebug:()=>{}};
