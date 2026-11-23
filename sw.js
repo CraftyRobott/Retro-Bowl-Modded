@@ -1,5 +1,5 @@
-const SHELL_CACHE="rb-modded-shell-v17";
-const SHELL=["./","./index.html","./install.html","./styles.css","./app.js","./manifest.webmanifest","./game-manifest.json","./play/","./play/index.html","./play/manifest.webmanifest","./play/engine/mods/loader.js"];
+const SHELL_CACHE="rb-modded-shell-v18";
+const SHELL=["./","./index.html","./builder.html","./install.html","./styles.css","./app.js","./manifest.webmanifest","./game-manifest.json","./play/","./play/index.html","./play/manifest.webmanifest","./play/engine/mods/loader.js"];
 self.addEventListener("install",event=>event.waitUntil((async()=>{
  const cache=await caches.open(SHELL_CACHE);
  // Force a fresh network read: addAll() can reuse an old browser HTTP-cache
