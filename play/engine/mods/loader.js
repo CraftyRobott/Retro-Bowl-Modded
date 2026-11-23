@@ -1,6 +1,48 @@
 (function(){
  "use strict";
  console.log("[Mod] Local mod loader starting...");
+
+ function installNativeModBuilderButton(){
+  try{
+   const originalContinue=window.gml_Script_btn_click_Continue;
+   const originalOptionsCreate=window.gml_Object_obj_options_Create_0;
+   if(typeof originalContinue!=="function"||typeof originalOptionsCreate!=="function"){
+    throw Error("Retro Bowl settings hooks were not found.");
+   }
+
+   // Reuse the game's normal Continue button action, but redirect only our
+   // marked button to the local Mod Builder page.
+   window.gml_Script_btn_click_Continue=function(_inst,_other){
+    if(_inst&&_inst.__rbModBuilderButton){
+     window.location.href=new URL("../builder.html",window.location.href).href;
+     return;
+    }
+    return originalContinue.apply(this,arguments);
+   };
+
+   // Add a native thin-button control to the bottom-center of the real
+   // Options screen. It uses the game's own sprite, text renderer and input.
+   window.gml_Object_obj_options_Create_0=function(_inst,_other){
+    const result=originalOptionsCreate.apply(this,arguments);
+    if(_inst&&!_inst.__rbModBuilderAdded){
+     const buttonObject=asset_get_index("obj_button_thin");
+     if(typeof buttonObject!=="number"||buttonObject<0){
+      throw Error("Could not find the game's thin button object.");
+     }
+     const button=instance_create_layer(176,208,_inst.layer,buttonObject);
+     if(!button)throw Error("Could not create the Mod Builder button.");
+     button.gmltext="MOD BUILDER";
+     button.__rbModBuilderButton=true;
+     button.depth=-1;
+     _inst.__rbModBuilderAdded=true;
+     console.log("[Mod] Native Settings > MOD BUILDER button added.");
+    }
+    return result;
+   };
+  }catch(error){
+   console.warn("[Mod] Could not add native Settings button:",error);
+  }
+ }
  window.RBModsReady=(async function(){
   try{
    const response=await fetch("engine/mods/selected.json",{cache:"no-store"});
@@ -15,6 +57,8 @@
     const script=document.createElement("script");script.textContent=source;script.dataset.mod=path;document.head.appendChild(script);script.remove();
     console.log("[Mod] Loaded:",path);
    }
+
+   installNativeModBuilderButton();
    console.log("[Mod] All selected mods loaded.");
   }catch(error){console.error("[Mod] Mod loading failed:",error);throw error;}
  })();
