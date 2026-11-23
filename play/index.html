@@ -10,10 +10,13 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#
 body{position:fixed;inset:0}#gm4html5_div_id{position:absolute;inset:0;margin:0;padding:0;border:0}
 canvas{image-rendering:pixelated;-webkit-interpolation-mode:nearest-neighbor;touch-action:none;-ms-touch-action:none;margin:0;padding:0;border:0}
 #offline-error{position:absolute;z-index:10;inset:0;display:none;place-items:center;background:#101411;color:#f2f4ed;font:14px system-ui;text-align:center;padding:25px;white-space:pre-wrap}
+
+#rb-main-menu{position:fixed;z-index:20;top:calc(env(safe-area-inset-top,0px) + 10px);left:calc(env(safe-area-inset-left,0px) + 10px);display:block;padding:9px 12px;border:1px solid rgba(255,255,255,.35);border-radius:5px;background:rgba(16,20,17,.88);color:#fff;font:700 11px system-ui,sans-serif;letter-spacing:.06em;text-decoration:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent}#rb-main-menu:active{background:#344331}
 </style></head><body>
 <div id="gm4html5_div_id"><img src="html5game/splash.png" id="GM4HTML5_loadingscreen" alt="" style="display:none">
 <canvas id="canvas" width="853" height="480" style="position:absolute;top:50%;left:50%;bottom:-50%;right:-50%;transform:translate(-50%,-50%)"><p>Canvas is not supported.</p></canvas></div>
 <div id="offline-error"></div>
+<a id="rb-main-menu" href="../?menu=1" aria-label="Return to mod menu">MOD MENU</a>
 <script>
 window.__rbSetStatus=function(message){console.info("[Offline diagnostic]",message);};
 window.PokiSDK={init:()=>Promise.resolve(),gameplayStart:()=>{},gameplayStop:()=>{},happyTime:()=>{},commercialBreak:()=>Promise.resolve(),rewardedBreak:()=>Promise.resolve(false),gameLoadingStart:()=>{},gameLoadingProgress:()=>{},gameLoadingFinished:()=>{},getURLParam:()=>null,setDebug:()=>{}};
