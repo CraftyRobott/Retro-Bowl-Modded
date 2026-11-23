@@ -17,6 +17,7 @@ const DB_NAME="rb-modded-custom-mods";
 function openCustomDB(){return new Promise((resolve,reject)=>{const request=indexedDB.open(DB_NAME,1);request.onupgradeneeded=()=>request.result.createObjectStore("mods",{keyPath:"id"});request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});}
 async function saveCustomMod(record){const db=await openCustomDB();return new Promise((resolve,reject)=>{const tx=db.transaction("mods","readwrite");tx.objectStore("mods").put(record);tx.oncomplete=()=>{db.close();resolve();};tx.onerror=()=>{db.close();reject(tx.error);};});}
 async function deleteCustomMod(id){const db=await openCustomDB();return new Promise((resolve,reject)=>{const tx=db.transaction("mods","readwrite");tx.objectStore("mods").delete(id);tx.oncomplete=()=>{db.close();resolve();};tx.onerror=()=>{db.close();reject(tx.error);};});}
+async function loadSavedCustomMods(){const db=await openCustomDB();return new Promise((resolve,reject)=>{const tx=db.transaction("mods","readonly"),request=tx.objectStore("mods").getAll();request.onsuccess=()=>{customMods.splice(0,customMods.length,...request.result.map(({id,name})=>({id,name})));db.close();resolve();};request.onerror=()=>{db.close();reject(request.error);};});}
 function renderCustomMods(){customList.innerHTML="";if(!customMods.length){customList.innerHTML='<span class="loading">No custom mods added.</span>';}for(const mod of customMods){const item=document.createElement("div");item.className="custom-mod-item";const name=document.createElement("span");name.textContent=mod.name;const remove=document.createElement("button");remove.type="button";remove.textContent="REMOVE";remove.addEventListener("click",async()=>{try{await deleteCustomMod(mod.id);customMods.splice(customMods.findIndex(x=>x.id===mod.id),1);renderCustomMods();render();}catch(error){status.textContent="Could not remove custom mod: "+error.message;}});item.append(name,remove);customList.append(item);}}
 let catalog=[];
 const selected=new Set();
@@ -86,5 +87,5 @@ if("serviceWorker" in navigator&&location.protocol!=="file:"){
  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(console.warn));
 }
 checkInstalled().catch(console.warn);
-renderCustomMods();
+loadSavedCustomMods().then(()=>{renderCustomMods();render();}).catch(error=>{status.textContent="Could not read saved custom mods: "+error.message;});
 loadMods().catch(error=>{list.innerHTML='<div class="loading">'+escapeHTML(error.message)+'</div>';status.textContent=error.message;});
