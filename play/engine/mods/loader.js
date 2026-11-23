@@ -22,17 +22,26 @@
      if(typeof buttonObject!=="number"||buttonObject<0){
       throw Error("Could not find the game's thin button object.");
      }
-     const button=instance_create_layer(176,208,_inst.layer,buttonObject);
-     if(!button)throw Error("Could not create the Mod Builder button.");
+     const buttonId=instance_create_layer(176,208,_inst.layer,buttonObject);
+     if(!buttonId)throw Error("Could not create the Mod Builder button.");
+
+     // GameMaker's instance_create_layer returns an instance ID, not the
+     // JavaScript instance object. Resolve it through yyInst before changing
+     // any GML instance variables.
+     const button=yyInst(_inst,_other,buttonId);
+     if(!button)throw Error("Could not resolve the Mod Builder button instance.");
 
      button.gmltext="MOD BUILDER";
-     // script_execute() accepts a function directly. This gives this one
-     // button its own action and avoids invoking the Continue script at all.
-     button.gmlonClickAction=function(){
+     // obj_button's Step event calls script_execute(instance, other, action).
+     // A function callback is supported by this runtime.
+     button.gmlonClickAction=function(_buttonInstance,_otherInstance){
+      console.log("[Mod] Native Mod Builder button clicked.");
       window.location.href=new URL("../builder.html",window.location.href).href;
      };
      button.__rbModBuilderButton=true;
      button.depth=-1;
+     console.log("[Mod] Button callback installed:",typeof button.gmlonClickAction,
+      "button id:",buttonId,"text:",button.gmltext);
      _inst.__rbModBuilderAdded=true;
      console.log("[Mod] Native Settings > MOD BUILDER button added.");
     }
