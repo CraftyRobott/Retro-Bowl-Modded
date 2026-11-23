@@ -1,8 +1,8 @@
 (function () {
     "use strict";
 
-    // Retro Bowl College - Disable achievement popups only.
-    // Achievement progress and completion are left untouched.
+    // Retro Bowl College - Disable achievement and new-record popups only.
+    // Achievement progress, record tracking, and record updates are untouched.
 
     if (window.__rbNoAchievementPopupsInstalled) return;
 
@@ -13,26 +13,27 @@
 
     var originalNotification = gml_Script_s_notification;
 
-    function isAchievementNotification(_inst, _other, title) {
+    function hasLocalizedTitle(_inst, _other, title, stringId, fallback) {
         try {
-            // Use the game's own localized achievement title so this works
-            // regardless of the selected game language.
-            var achievementTitle = gml_Script_s_str(
-                _inst,
-                _other,
-                "ui_Achievement"
-            );
-
-            return String(title) === String(achievementTitle) + "!";
+            // Use the game's localized title so this works in every language.
+            var localizedTitle = gml_Script_s_str(_inst, _other, stringId);
+            return String(title) === String(localizedTitle) + "!";
         } catch (error) {
             // English fallback if localization lookup is unavailable.
-            return String(title).trim().toLowerCase() === "achievement!";
+            return String(title).trim().toLowerCase() === fallback;
         }
     }
 
+    function shouldSuppressNotification(_inst, _other, title) {
+        return (
+            hasLocalizedTitle(_inst, _other, title, "ui_Achievement", "achievement!") ||
+            hasLocalizedTitle(_inst, _other, title, "ui_NewRecord", "new record!")
+        );
+    }
+
     gml_Script_s_notification = function (_inst, _other, title, message) {
-        if (isAchievementNotification(_inst, _other, title)) {
-            console.log("[No Achievement Popups] Suppressed:", message);
+        if (shouldSuppressNotification(_inst, _other, title)) {
+            console.log("[No Achievement Popups] Suppressed:", title, message);
             return;
         }
 
@@ -40,5 +41,5 @@
     };
 
     window.__rbNoAchievementPopupsInstalled = true;
-    console.log("[No Achievement Popups] Installed. Achievement progress is unchanged.");
+    console.log("[No Achievement Popups] Installed. Achievement progress and record tracking are unchanged.");
 })();
