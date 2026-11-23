@@ -12,6 +12,8 @@
   <script>
   (function(){
     function showBuilder(){document.documentElement.classList.remove("rb-checking");}
+    // The in-game menu link uses ?menu=1 to intentionally bypass auto-launch.
+    if(new URLSearchParams(location.search).get("menu")==="1"){showBuilder();return;}
     if(!("caches" in window)){showBuilder();return;}
     const markerURL=new URL("./play/installed.json",location.href).href;
     caches.match(markerURL).then(function(marker){
