@@ -47,7 +47,7 @@ function decodeBuild(){
  const raw=location.hash.slice(1).replace(/-/g,"+").replace(/_/g,"/");
  const padded=raw+"=".repeat((4-raw.length%4)%4);
  const value=JSON.parse(decodeURIComponent(escape(atob(padded))));
- if(![3,4].includes(value.schema)||value.game!=="retro-bowl-college"||!Array.isArray(value.mods))throw Error("This build link is invalid or outdated. Return to the mod selector and create a new build.");
+ if(![3,4,5].includes(value.schema)||value.game!=="retro-bowl-college"||!Array.isArray(value.mods))throw Error("This build link is invalid or outdated. Return to the mod selector and create a new build.");
  return value;
 }
 function setProgress(done,total,text){
@@ -76,11 +76,37 @@ async function getModFiles(){
  return [...chosen,...support];
 }
 function openCustomDB(){return new Promise((resolve,reject)=>{const request=indexedDB.open("rb-modded-custom-mods",1);request.onupgradeneeded=()=>request.result.createObjectStore("mods",{keyPath:"id"});request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});}
+function cleanCustomPath(path){
+ let value=String(path||"").split(String.fromCharCode(92)).join("/");
+ while(value.charAt(0)==="/")value=value.slice(1);
+ const parts=value.split("/").filter(Boolean);
+ if(!parts.length||parts.some(part=>part==="."||part===".."||part.includes(":")))return "";
+ return parts.join("/");
+}
 async function getCustomMods(){
- const entries=Array.isArray(config.customMods)?config.customMods:[];if(!entries.length)return [];
+ const entries=Array.isArray(config.customMods)?config.customMods:[];
+ if(!entries.length)return [];
  const db=await openCustomDB();
- return new Promise((resolve,reject)=>{const tx=db.transaction("mods","readonly"),store=tx.objectStore("mods"),output=[];let remaining=entries.length;
-  for(const entry of entries){const request=store.get(entry.id);request.onsuccess=()=>{if(!request.result){db.close();reject(Error("Custom mod "+entry.name+" is missing from this browser. Return to the builder and upload it again."));return;}output.push({id:entry.id,name:entry.name,source:request.result.source});if(--remaining===0){db.close();resolve(output);}};request.onerror=()=>{db.close();reject(request.error);};}
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction("mods","readonly"),store=tx.objectStore("mods"),output=[];
+  let remaining=entries.length,failed=false;
+  function fail(error){if(failed)return;failed=true;db.close();reject(error);}
+  for(const entry of entries){
+   const request=store.get(entry.id);
+   request.onsuccess=()=>{
+    if(failed)return;
+    const record=request.result;
+    if(!record){fail(Error("Custom mod "+entry.name+" is missing from this browser. Return to the builder and upload its folder again."));return;}
+    let files=Array.isArray(record.files)?record.files:[];
+    if(!files.length&&typeof record.source==="string")files=[{path:record.name||entry.name,blob:new Blob([record.source],{type:"application/javascript"})}];
+    files=files.map(file=>({path:cleanCustomPath(file.path),blob:file.blob||file.file})).filter(file=>file.path&&file.blob);
+    const jsPaths=files.filter(file=>file.path.toLowerCase().endsWith(".js")).map(file=>file.path);
+    if(!jsPaths.length){fail(Error("Custom mod "+entry.name+" has no JavaScript file. Reimport its folder."));return;}
+    output.push({id:entry.id,name:entry.name,files,jsPaths});
+    if(--remaining===0){db.close();resolve(output);}
+   };
+   request.onerror=()=>fail(request.error||Error("Could not read custom mod "+entry.name+"."));
+  }
  });
 }
 function localUrl(path){return new URL("play/"+path,location.href).href;}
@@ -117,15 +143,24 @@ async function runInstall(){
   const game=await fetch(GAME_MANIFEST).then(r=>{if(!r.ok)throw Error("Could not load the game asset manifest.");return r.json();});
   const modFiles=await getModFiles();
   const customFiles=await getCustomMods();
-  const totalFiles=game.files.length+modFiles.length+customFiles.length;
-  const totalBytes=game.totalBytes+modFiles.reduce((n,f)=>n+(f.size||0),0)+customFiles.reduce((n,f)=>n+new Blob([f.source]).size,0);
+  const customAssetCount=customFiles.reduce((n,mod)=>n+mod.files.length,0);
+  const totalFiles=game.files.length+modFiles.length+customAssetCount;
+  const totalBytes=game.totalBytes+modFiles.reduce((n,f)=>n+(f.size||0),0)+customFiles.reduce((n,mod)=>n+mod.files.reduce((sum,file)=>sum+(file.blob.size||0),0),0);
   const cache=await caches.open(cacheName);
   let done=0,completed=0;
   $("install-note").textContent="Downloading "+totalFiles+" files ("+(totalBytes/1048576).toFixed(1)+" MB estimated). Keep this page open and stay on Wi-Fi.";
+  function mimeFor(path){
+   const ext=path.split(".").pop().toLowerCase();
+   return ({js:"application/javascript; charset=utf-8",mjs:"application/javascript; charset=utf-8",json:"application/json; charset=utf-8",png:"image/png",jpg:"image/jpeg",jpeg:"image/jpeg",webp:"image/webp",gif:"image/gif",svg:"image/svg+xml",ogg:"audio/ogg",mp3:"audio/mpeg",wav:"audio/wav",mp4:"video/mp4",webm:"video/webm",txt:"text/plain; charset=utf-8",xml:"application/xml; charset=utf-8",css:"text/css; charset=utf-8",woff:"font/woff",woff2:"font/woff2"})[ext]||"application/octet-stream";
+  }
   const jobs=[
    ...game.files.map(file=>({remote:UPSTREAM_RAW+file.path,local:localUrl(file.path),size:file.size})),
    ...modFiles.map(file=>({remote:MOD_RAW+file.path,local:localUrl("engine/mods/"+file.path.slice(5)),size:file.size})),
-   ...customFiles.map(file=>({custom:true,source:file.source,local:localUrl("engine/mods/custom/"+file.id+".js"),size:new Blob([file.source]).size}))
+   ...customFiles.flatMap(mod=>mod.files.map(file=>({
+    custom:true,blob:file.blob,path:file.path,
+    local:localUrl("engine/mods/custom/"+mod.id+"/"+file.path),
+    size:file.blob.size||0
+   })))
   ];
   let cursor=0;let failure=null;
   async function worker(){
@@ -133,14 +168,18 @@ async function runInstall(){
     const index=cursor++;if(index>=jobs.length)return;
     const job=jobs[index];
     try{
-     if(job.custom){await cache.put(job.local,new Response(job.source,{headers:{"Content-Type":"application/javascript; charset=utf-8"}}));done+=job.size;completed++;setProgress(done,totalBytes,"Saving custom mod "+completed+" of "+totalFiles+" files");}
-     else await downloadToCache(cache,job.remote,job.local,job.size,bytes=>{done+=bytes;completed++;setProgress(done,totalBytes,"Downloading "+completed+" of "+totalFiles+" files");});
+     if(job.custom){
+      await cache.put(job.local,new Response(job.blob,{headers:{"Content-Type":mimeFor(job.path)}}));
+      done+=job.size;completed++;
+      setProgress(done,totalBytes,"Saving custom asset "+completed+" of "+totalFiles+" files");
+     }else await downloadToCache(cache,job.remote,job.local,job.size,bytes=>{done+=bytes;completed++;setProgress(done,totalBytes,"Downloading "+completed+" of "+totalFiles+" files");});
     }catch(error){failure=error;return;}
    }
   }
   await Promise.all(Array.from({length:4},worker));
   if(failure)throw failure;
-  const selected={schema:1,mods:[...config.mods,...customFiles.map(file=>"custom/"+file.id+".js")]};
+  const customEntrypoints=customFiles.flatMap(mod=>mod.jsPaths.map(path=>"custom/"+mod.id+"/"+path));
+  const selected={schema:2,mods:[...config.mods,...customEntrypoints]};
   await cache.put(localUrl("engine/mods/selected.json"),new Response(JSON.stringify(selected),{headers:{"Content-Type":"application/json"}}));
   const marker={schema:1,cacheName,installedAt:new Date().toISOString(),upstream:"ReznorsRevenge1/retro-bowl-college",upstreamRef:"d5e211826acf4b15d537a1cd84b663ab66714254",mods:selected.mods};
   await cache.put(localUrl("installed.json"),new Response(JSON.stringify(marker),{headers:{"Content-Type":"application/json"}}));
@@ -157,7 +196,7 @@ async function runInstall(){
 }
 try{
  config=decodeBuild();
- const selectedNames=config.mods.concat((config.customMods||[]).map(file=>"Custom: "+file.name));
+ const selectedNames=config.mods.concat((config.customMods||[]).map(file=>"Custom folder: "+file.name));
  $("selected-mods").innerHTML=selectedNames.length?selectedNames.map(id=>"<li>"+id.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")+"</li>").join(""):"<li>Base game only — no mods selected</li>";
  btn.addEventListener("click",runInstall);
  if("caches" in window)caches.match(new URL("play/installed.json",location.href).href).then(r=>{if(r){$("launch").hidden=false;status.textContent="An offline installation is already present. Installing again will replace it.";}}).catch(()=>{});
