@@ -22,6 +22,22 @@ Add `.js` files under `mods/`. Subfolders are supported. Add optional metadata c
 
 Put supporting files alongside the mods under `mods/data/`, `mods/fields/`, or another subfolder. At install time, selected JS files and non-JavaScript support files are downloaded into the local game folder under `engine/mods/`.
 
+### Import a local mod folder
+
+The builder also has a **Choose mod folder** control. Select a folder containing at least one `.js` file and any images, audio, JSON, or other files it needs. The importer preserves relative paths and stores the folder in this browser's IndexedDB. The offline installer then copies every file into the installed game cache under `play/engine/mods/custom/<id>/`; the custom folder does not get uploaded to this repository.
+
+Limits: up to 10 custom folders, 25 MB per folder, 300 files per folder, and 2 MB per JavaScript file. Import the folder again on each device where you want to install it.
+
+During a mod's synchronous startup, the loader exposes an asset namespace for that mod. Capture it at the top of the mod script so it remains available to later callbacks:
+
+```js
+const assets = window.RetroBowlModAssets.current;
+const field = new Image();
+field.src = assets.getURL("assets/fields/classic.png");
+```
+
+The path is relative to the folder containing that mod's JavaScript file. The namespace also provides `assets.loadImage(path)` and `assets.fetch(path)`.
+
 Only commit mods you intend to publish. Your private development repository remains separate.
 
 ## Game installation
