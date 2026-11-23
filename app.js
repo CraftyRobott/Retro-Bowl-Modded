@@ -106,7 +106,8 @@ function render(){
  build.disabled=false;
 }
 function cleanRelativePath(path){
- const value=String(path||"").replace(/\\/g,"/").replace(/^\/+ /,"");
+ let value=String(path||"").split(String.fromCharCode(92)).join("/");
+ while(value.charAt(0)==="/")value=value.slice(1);
  const parts=value.split("/").filter(Boolean);
  if(!parts.length||parts.some(part=>part==="."||part===".."||part.includes(":")))return "";
  return parts.join("/");
