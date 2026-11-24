@@ -82,7 +82,10 @@
     frame.setAttribute("aria-hidden", "true");
     frame.setAttribute("tabindex", "-1");
     frame.style.cssText = "position:fixed;left:0;top:0;width:2315px;height:534px;border:0;margin:0;padding:0;z-index:2147483646;pointer-events:none;overflow:hidden;background:transparent;transform-origin:top left;visibility:hidden;";
+    var sourceAssigned = false;
     frame.onload = function () {
+      // Ignore the iframe's initial about:blank load; the original source has not arrived yet.
+      if (!sourceAssigned) return;
       frameReady = true;
       frameLoading = false;
       frame.style.visibility = "visible";
@@ -99,7 +102,10 @@
     document.body.appendChild(frame);
 
     fetchSource().then(function (html) {
-      if (frame) frame.srcdoc = html;
+      if (frame) {
+        sourceAssigned = true;
+        frame.srcdoc = html;
+      }
     }).catch(function (error) {
       frameLoading = false;
       loadFailed = true;
