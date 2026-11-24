@@ -40,10 +40,6 @@
       // the compiled template, not just from one exact formatting of the expression.
       var greenMatches = (template.match(/#00b140/gi) || []).length;
       template = template.replace(/#00b140/gi, "transparent");
-      template = template.replace(
-        /background:\\s*\\(p\\.greenScreen \\?\\? true\\) \\?\\s*\\(p\\.keyColor \\?\\? "transparent"\\) \\:\\s*"#1b2417"/g,
-        'background: "transparent"'
-      );
       console.log(TAG, "Removed", greenMatches, "chroma-key green references from the FOX template.");
       var patched = html.slice(0, match.index) + match[1] + JSON.stringify(template) + match[3] +
         html.slice(match.index + match[0].length);
