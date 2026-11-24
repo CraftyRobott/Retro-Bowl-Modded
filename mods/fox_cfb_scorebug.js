@@ -42,25 +42,10 @@
       template = template.replace(/#00b140/gi, "transparent");
       // Force the generated canvas to transparent even if editor defaults enable chroma key.
       template = template.replace(/background:\s*\(p\.greenScreen\s*\?\?\s*true\)\s*\?\s*\(p\.keyColor\s*\?\?\s*"[^"]*"\)\s*:\s*"[^"]*"/g, 'background: "transparent"');
-      // The standalone FOX export has no listener for the host's game-data messages.
-      var bridgeScript = [
-        '<script id="fox-cfb-live-data">(function(){',
-        'function el(id){return document.getElementById(id);}',
-        'function put(id,value){var node=el(id);if(!node||value===undefined||value===null)return;node.textContent=String(value);}',
-        'function image(id,value){var node=el(id);if(!node)return;if(typeof value==="string"&&value){node.src=value;node.style.setProperty("opacity","1","important");}else{node.removeAttribute("src");node.style.setProperty("opacity","0","important");}}',
-        'function color(id,value){var node=el(id);if(!node||typeof value!=="string"||!/^#[0-9a-f]{6}$/i.test(value))return;node.style.setProperty("background-color",value,"important");node.style.setProperty("--team-color",value);}',
-        'function possession(id,on){var node=el(id);if(node)node.style.setProperty("display",on?"block":"none","important");}',
-        'function timeouts(id,count){var node=el(id);if(!node)return;var n=Math.max(0,Math.min(3,Number(count)||0));Array.prototype.forEach.call(node.children,function(mark,i){mark.style.setProperty("opacity",i<n?"1":"0.18","important");});}',
-        'var latest=null;function apply(d){if(!d)return;var a=d.away,h=d.home,g=d.game;',
-        'put("awayName",a.name);put("awayScore",a.score);put("awayRank",a.rank?("#"+String(a.rank).replace(/^#/,"")):"");put("awayMascot",a.mascot);put("awayMascot2",a.mascot2);put("awayRecord",a.record);',
-        'put("homeName",h.name);put("homeScore",h.score);put("homeRank",h.rank?("#"+String(h.rank).replace(/^#/,"")):"");put("homeMascot",h.mascot);put("homeMascot2",h.mascot2);put("homeRecord",h.record);',
-        'put("quarter",g.quarter);put("clock",g.clock);put("playClock",g.playClock);put("downDistance",g.downDistance);',
-        'image("awayLogo",a.logo);image("homeLogo",h.logo);color("awayPanel",a.color);color("homePanel",h.color);',
-        'possession("awayPossession",!!a.possession);possession("homePossession",!!h.possession);timeouts("awayTimeoutMarks",a.timeouts);timeouts("homeTimeoutMarks",h.timeouts);}',
-        'window.addEventListener("message",function(event){var d=event.data;if(!d||typeof d!=="object"||!d.away||!d.home||!d.game)return;latest=d;apply(latest);});setInterval(function(){apply(latest);},250);})();</script>'
-      ].join("");
-      template = template.replace(/<\/head>/i, bridgeScript + "</head>");
-      var transparentDocStyle = '<style id="fox-cfb-live-transparent">html,body,x-dc{background:transparent!important;background-color:transparent!important}body>div{background-color:transparent!important}</style>';
+      // The source's body and outer wrapper also use chroma green.
+      template = template.replace(/background:\s*#00b140/gi, "background: transparent");
+      template = template.replace(/background-color:\s*#00b140/gi, "background-color: transparent");
+      var transparentDocStyle = '<style id="fox-cfb-live-transparent">html,body,x-dc,x-dc>div,body>div{background:transparent!important;background-color:transparent!important}*[style*="#00b140"]{background:transparent!important;background-color:transparent!important}</style>';
       template = template.replace(/<head([^>]*)>/i, '<head$1>' + transparentDocStyle);
       console.log(TAG, "Removed", greenMatches, "chroma-key green references and installed live-data bridge.");
       var patched = html.slice(0, match.index) + match[1] + JSON.stringify(template).replace(/</g, "\\u003C") + match[3] +
@@ -98,11 +83,70 @@
 
   function sendState(state) {
     pendingState = state;
-    if (!frame || !frameReady || !frame.contentWindow || !state) return;
+    if (!frame || !frameReady || !state) return;
     try {
-      frame.contentWindow.postMessage(state, "*");
+      var doc = frame.contentDocument;
+      if (!doc || !doc.documentElement) return;
+      if (!doc.getElementById("fox-cfb-live-transparent-host")) {
+        var style = doc.createElement("style");
+        style.id = "fox-cfb-live-transparent-host";
+        style.textContent = 'html,body,x-dc,x-dc>div,body>div{background:transparent!important;background-color:transparent!important}*[style*="#00b140"]{background:transparent!important;background-color:transparent!important}';
+        (doc.head || doc.documentElement).appendChild(style);
+      }
+      function put(id, value) {
+        var node = doc.getElementById(id);
+        if (!node || value === undefined || value === null) return;
+        node.textContent = String(value);
+      }
+      function setImage(id, value) {
+        var node = doc.getElementById(id);
+        if (!node) return;
+        if (typeof value === "string" && value) {
+          node.src = value;
+          node.style.setProperty("opacity", "1", "important");
+        } else {
+          node.removeAttribute("src");
+          node.style.setProperty("opacity", "0", "important");
+        }
+      }
+      function setTimeouts(id, count) {
+        var node = doc.getElementById(id);
+        if (!node) return;
+        var active = Math.max(0, Math.min(3, Number(count) || 0));
+        Array.prototype.forEach.call(node.children, function (mark, i) {
+          mark.style.setProperty("opacity", i < active ? "1" : "0.18", "important");
+        });
+      }
+      put("awayName", state.away.name);
+      put("awayScore", state.away.score);
+      put("awayRank", state.away.rank ? "#" + String(state.away.rank).replace(/^#/, "") : "");
+      put("awayMascot", state.away.mascot);
+      put("awayMascot2", state.away.mascot2);
+      put("awayRecord", state.away.record);
+      put("homeName", state.home.name);
+      put("homeScore", state.home.score);
+      put("homeRank", state.home.rank ? "#" + String(state.home.rank).replace(/^#/, "") : "");
+      put("homeMascot", state.home.mascot);
+      put("homeMascot2", state.home.mascot2);
+      put("homeRecord", state.home.record);
+      put("quarter", state.game.quarter);
+      put("clock", state.game.clock);
+      put("playClock", state.game.playClock);
+      put("downDistance", state.game.downDistance);
+      setImage("awayLogo", state.away.logo);
+      setImage("homeLogo", state.home.logo);
+      var awayPanel = doc.getElementById("awayPanel");
+      var homePanel = doc.getElementById("homePanel");
+      if (awayPanel && state.away.color) awayPanel.style.setProperty("background-color", state.away.color, "important");
+      if (homePanel && state.home.color) homePanel.style.setProperty("background-color", state.home.color, "important");
+      var awayPoss = doc.getElementById("awayPossession");
+      var homePoss = doc.getElementById("homePossession");
+      if (awayPoss) awayPoss.style.setProperty("display", state.away.possession ? "block" : "none", "important");
+      if (homePoss) homePoss.style.setProperty("display", state.home.possession ? "block" : "none", "important");
+      setTimeouts("awayTimeoutMarks", state.away.timeouts);
+      setTimeouts("homeTimeoutMarks", state.home.timeouts);
     } catch (error) {
-      logError("Could not send live game data to the scorebug.", error);
+      logError("Could not apply live data directly to the FOX document.", error);
     }
   }
 
