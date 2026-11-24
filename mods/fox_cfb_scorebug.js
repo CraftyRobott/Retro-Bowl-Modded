@@ -130,7 +130,7 @@
   }
 
   var downDistanceObserver = null;
-  var observedDownDistanceDocument = null;
+  var observedDownDistanceElement = null;
   var latestDownDistanceText = "";
 
   function updateNativeDownDistance(doc, value) {
@@ -140,29 +140,32 @@
     if (!text) return false;
     latestDownDistanceText = text;
 
-    // The exported Design Component can asynchronously restore its demo
-    // binding after __dcSetProps(). Watch the iframe DOM and re-apply the
-    // current live value whenever that renderer touches the down/distance
-    // field. This leaves the rest of the FOX component's React updates alone.
-    if (doc !== observedDownDistanceDocument && doc.body &&
+    var element = doc.getElementById("downDistance");
+    if (!element) return false;
+
+    // Observe only the down/distance node. Watching the entire iframe body
+    // also reacts to clock and score animations, so keep this isolated from
+    // every other live field in the FOX component.
+    if (element !== observedDownDistanceElement &&
         typeof doc.defaultView.MutationObserver === "function") {
       if (downDistanceObserver) downDistanceObserver.disconnect();
-      observedDownDistanceDocument = doc;
+      observedDownDistanceElement = element;
       downDistanceObserver = new doc.defaultView.MutationObserver(function () {
-        if (latestDownDistanceText) updateNativeDownDistance(doc, latestDownDistanceText);
+        var current = doc.getElementById("downDistance");
+        if (current && latestDownDistanceText) {
+          var currentText = String(current.textContent || "").replace(/\s+/g, " ").trim().toUpperCase();
+          var liveText = String(latestDownDistanceText).replace(/\s+/g, " ").trim().toUpperCase();
+          if (currentText !== liveText) current.textContent = latestDownDistanceText;
+        }
       });
-      downDistanceObserver.observe(doc.body, {
+      downDistanceObserver.observe(element, {
         subtree: true,
         childList: true,
         characterData: true
       });
     }
 
-    var element = doc.getElementById("downDistance");
-    if (!element) return false;
-
-    // Normalize whitespace because the source component uses non-breaking
-    // spaces when it rebuilds the ordinal and yardage spans.
+    // The source component uses non-breaking spaces in its rebuilt spans.
     var normalize = function (value) {
       return String(value || "").replace(/\s+/g, " ").trim().toUpperCase();
     };
