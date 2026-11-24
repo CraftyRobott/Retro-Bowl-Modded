@@ -78,6 +78,20 @@
     }
   }
 
+  function layoutFrame() {
+    if (!frame) return;
+    var vw = Math.max(1, window.innerWidth || document.documentElement.clientWidth || 1);
+    var vh = Math.max(1, window.innerHeight || document.documentElement.clientHeight || 1);
+    // The uploaded FOX design uses a 2315 x 534 authoring canvas.
+    // Scale it to fit the lower portion of the game viewport without changing its layout.
+    var scale = Math.min(0.42, (vw * 0.82) / 2315, (vh * 0.42) / 534);
+    var width = 2315 * scale;
+    var height = 534 * scale;
+    frame.style.left = ((vw - width) / 2) + "px";
+    frame.style.top = (vh - height - Math.max(8, vh * 0.018)) + "px";
+    frame.style.transform = "scale(" + scale + ")";
+  }
+
   function ensureOverlay() {
     if (frame && document.body.contains(frame)) return frame;
     if (frameLoading || loadFailed) return frame;
