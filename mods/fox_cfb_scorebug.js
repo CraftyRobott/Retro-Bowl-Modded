@@ -289,9 +289,9 @@
       if (exhibitionNoPlayer) {
         awayTimeouts = match.gmltimeouts !== undefined ? Number(match.gmltimeouts) : 3;
         homeTimeouts = match.gmltimeouts_p2 !== undefined ? Number(match.gmltimeouts_p2) : 3;
-      } else if (Number(inst.gmlhuman_team) === 0) {
+      } else if (Number(match.gmlhuman_team) === 0) {
         awayTimeouts = match.gmltimeouts !== undefined ? Number(match.gmltimeouts) : 3;
-      } else if (Number(inst.gmlhuman_team) === 1) {
+      } else if (Number(match.gmlhuman_team) === 1) {
         homeTimeouts = match.gmltimeouts !== undefined ? Number(match.gmltimeouts) : 3;
       }
     }
