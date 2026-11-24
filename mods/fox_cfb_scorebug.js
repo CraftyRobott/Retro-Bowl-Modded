@@ -57,7 +57,7 @@
         'put("quarter",g.quarter);put("clock",g.clock);put("playClock",g.playClock);put("downDistance",g.downDistance);',
         'image("awayLogo",a.logo);image("homeLogo",h.logo);color("awayPanel",a.color);color("homePanel",h.color);',
         'possession("awayPossession",!!a.possession);possession("homePossession",!!h.possession);timeouts("awayTimeoutMarks",a.timeouts);timeouts("homeTimeoutMarks",h.timeouts);}',
-        '}window.addEventListener("message",function(event){var d=event.data;if(!d||typeof d!=="object"||!d.away||!d.home||!d.game)return;latest=d;apply(latest);});setInterval(function(){apply(latest);},250);})();</script>'
+        'window.addEventListener("message",function(event){var d=event.data;if(!d||typeof d!=="object"||!d.away||!d.home||!d.game)return;latest=d;apply(latest);});setInterval(function(){apply(latest);},250);})();</script>'
       ].join("");
       template = template.replace(/<\/head>/i, bridgeScript + "</head>");
       var transparentDocStyle = '<style id="fox-cfb-live-transparent">html,body,x-dc{background:transparent!important;background-color:transparent!important}body>div{background-color:transparent!important}</style>';
