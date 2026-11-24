@@ -39,8 +39,13 @@
         'background: (p.greenScreen ?? true) ? (p.keyColor ?? "#00b140") : "#1b2417"',
         'background: "transparent"'
       );
-      return html.slice(0, match.index) + match[1] + JSON.stringify(template) + match[3] +
+      var patched = html.slice(0, match.index) + match[1] + JSON.stringify(template) + match[3] +
         html.slice(match.index + match[0].length);
+      // The original chroma-key adapter paints the document green as well.
+      // Override only that host canvas background; the FOX artwork is untouched.
+      var transparentStyle = '<style id="fox-overlay-transparent">html,body{background:transparent!important;background-color:transparent!important;margin:0!important;padding:0!important;overflow:hidden!important}</style>';
+      if (patched.indexOf("</head>") !== -1) patched = patched.replace("</head>", transparentStyle + "</head>");
+      return patched;
     }
 
     function attempt(index) {
