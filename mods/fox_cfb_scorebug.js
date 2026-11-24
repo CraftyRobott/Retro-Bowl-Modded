@@ -372,6 +372,20 @@
   }
 
   function downDistanceText(inst, other) {
+    // Use Retro Bowl's own formatter first. The working SEC scorebug calls
+    // this exact helper with the scoreboard's _inst/_other arguments.
+    try {
+      if (typeof window.gml_Script_s_get_string_downand === "function") {
+        var nativeText = window.gml_Script_s_get_string_downand(inst, other);
+        if (nativeText !== undefined && nativeText !== null && String(nativeText).trim()) {
+          return String(nativeText).trim();
+        }
+      }
+    } catch (error) {
+      console.warn(TAG, "Native down/distance formatter failed; using field fallback.", error);
+    }
+
+    // Compatibility fallback only for builds where the native helper is unavailable.
     var down = Math.round(gameNumber(inst, "gmldown", 0));
     if (down < 1 || down > 4) return "";
     var yardLine = gameNumber(inst, "gmlx_yards", NaN);
@@ -380,11 +394,6 @@
     if (isFinite(yardLine) && (yardLine < 300 || yardLine > 2300)) return label + " & GOAL";
     if (isFinite(yardsToGo) && yardsToGo < 1) return label + " & INCHES";
     if (isFinite(yardsToGo)) return label + " & " + String(Math.round(yardsToGo));
-    try {
-      if (typeof window.gml_Script_s_get_string_downand === "function") {
-        return String(window.gml_Script_s_get_string_downand(inst, other) || "");
-      }
-    } catch (_) {}
     return "";
   }
 
@@ -502,6 +511,15 @@
         down: inst.gmldown,
         yardLine: inst.gmlx_yards,
         yardsToGo: inst.gmlyards,
+        nativeDownDistance: (function () {
+          try {
+            return typeof window.gml_Script_s_get_string_downand === "function"
+              ? window.gml_Script_s_get_string_downand(inst, other)
+              : "native helper unavailable";
+          } catch (error) {
+            return "native helper error: " + String(error);
+          }
+        })(),
         displayedQuarter: state.game.quarter,
         displayedDownDistance: state.game.downDistance
       });
