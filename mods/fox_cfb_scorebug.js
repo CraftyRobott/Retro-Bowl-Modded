@@ -351,14 +351,41 @@
     return fallbackRank > 0 && fallbackRank <= 99 ? String(fallbackRank) : "";
   }
 
+  function gameNumber(inst, key, fallback) {
+    var value = inst && inst[key];
+    if (value && typeof value.toNumber === "function") value = value.toNumber();
+    var number = Number(value);
+    return isFinite(number) ? number : fallback;
+  }
+
   function quarterText(inst) {
     if (inst.gmlcollege_overtime) {
-      var round = Number(inst.gmlcollege_overtime_round) || 1;
+      var round = gameNumber(inst, "gmlcollege_overtime_round", 1);
       return round > 1 ? "OT" + round : "OT";
     }
-    var quarter = Number(inst.gmlquarter) || 1;
+    var quarter = Math.round(gameNumber(inst, "gmlquarter", 1));
     if (quarter >= 5) return "OT";
-    return quarter === 1 ? "1ST" : quarter === 2 ? "2ND" : quarter === 3 ? "3RD" : "4TH";
+    if (quarter <= 1) return "1ST";
+    if (quarter === 2) return "2ND";
+    if (quarter === 3) return "3RD";
+    return "4TH";
+  }
+
+  function downDistanceText(inst, other) {
+    var down = Math.round(gameNumber(inst, "gmldown", 0));
+    if (down < 1 || down > 4) return "";
+    var yardLine = gameNumber(inst, "gmlx_yards", NaN);
+    var yardsToGo = gameNumber(inst, "gmlyards", NaN);
+    var label = down === 1 ? "1ST" : down === 2 ? "2ND" : down === 3 ? "3RD" : "4TH";
+    if (isFinite(yardLine) && (yardLine < 300 || yardLine > 2300)) return label + " & GOAL";
+    if (isFinite(yardsToGo) && yardsToGo < 1) return label + " & INCHES";
+    if (isFinite(yardsToGo)) return label + " & " + String(Math.round(yardsToGo));
+    try {
+      if (typeof window.gml_Script_s_get_string_downand === "function") {
+        return String(window.gml_Script_s_get_string_downand(inst, other) || "");
+      }
+    } catch (_) {}
+    return "";
   }
 
   function getSettings(inst, other) {
@@ -396,12 +423,7 @@
     var minutes = Math.max(0, Number(inst.gmlminutes) || 0);
     var seconds = Math.max(0, Number(inst.gmlseconds) || 0);
     var clock = minutes + ":" + (seconds < 10 ? "0" : "") + Math.floor(seconds);
-    var downDistance = "";
-    try {
-      if (typeof window.gml_Script_s_get_string_downand === "function" && Number(inst.gmldown) > 0) {
-        downDistance = String(window.gml_Script_s_get_string_downand(inst, other));
-      }
-    } catch (_) {}
+    var downDistance = downDistanceText(inst, other);
 
     var match = getMatch(inst, other);
     var awayTimeouts = 3;
@@ -473,6 +495,16 @@
     }
     if (signature !== lastSnapshot) {
       lastSnapshot = signature;
+      console.log(TAG, "Live game fields:", {
+        quarter: inst.gmlquarter,
+        overtime: inst.gmlcollege_overtime,
+        overtimeRound: inst.gmlcollege_overtime_round,
+        down: inst.gmldown,
+        yardLine: inst.gmlx_yards,
+        yardsToGo: inst.gmlyards,
+        displayedQuarter: state.game.quarter,
+        displayedDownDistance: state.game.downDistance
+      });
       sendState(state);
     }
     return state;
