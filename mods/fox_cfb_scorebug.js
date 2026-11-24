@@ -35,15 +35,21 @@
       var match = html.match(/(<script type="__bundler\/template"[^>]*>)([\s\S]*?)(<\/script>)/);
       if (!match) throw new Error("Could not locate original FOX scorebug template.");
       var template = JSON.parse(match[2]);
+      // The source can use the chroma key in more than one generated style
+      // (the canvas and the document adapter). Remove the key color throughout
+      // the compiled template, not just from one exact formatting of the expression.
+      var greenMatches = (template.match(/#00b140/gi) || []).length;
+      template = template.replace(/#00b140/gi, "transparent");
       template = template.replace(
-        'background: (p.greenScreen ?? true) ? (p.keyColor ?? "#00b140") : "#1b2417"',
+        /background:\\s*\\(p\\.greenScreen \\?\\? true\\) \\?\\s*\\(p\\.keyColor \\?\\? "transparent"\\) \\:\\s*"#1b2417"/g,
         'background: "transparent"'
       );
+      console.log(TAG, "Removed", greenMatches, "chroma-key green references from the FOX template.");
       var patched = html.slice(0, match.index) + match[1] + JSON.stringify(template) + match[3] +
         html.slice(match.index + match[0].length);
       // The original chroma-key adapter paints the document green as well.
       // Override only that host canvas background; the FOX artwork is untouched.
-      var transparentStyle = '<style id="fox-overlay-transparent">html,body{background:transparent!important;background-color:transparent!important;margin:0!important;padding:0!important;overflow:hidden!important}</style>';
+      var transparentStyle = '<style id="fox-overlay-transparent">html,body,canvas{background:transparent!important;background-color:transparent!important;margin:0!important;padding:0!important;overflow:hidden!important}</style>';
       // The bundled asset manifest in this export wraps UUID paths in quotes.
       // The browser percent-encodes those quotes as %22, producing invalid image URLs.
       // Normalize only image URL assignments; leave the original artwork and layout intact.
