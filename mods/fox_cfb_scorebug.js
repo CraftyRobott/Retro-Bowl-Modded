@@ -132,17 +132,14 @@
   function updateNativeDownDistance(doc, value) {
     if (!doc || value === undefined || value === null) return false;
 
-    var text = String(value).trim();
-    var match = text.match(/^([1-4])(ST|ND|RD|TH)\\s*&\\s*(.+)$/i);
-    if (!match) return false;
-
     var element = doc.getElementById("downDistance");
-    if (!element || !element.children || element.children.length < 3) return false;
+    if (!element) return false;
 
-    // Update the original FOX template's existing spans; do not rebuild its markup.
-    element.children[0].textContent = match[1];
-    element.children[1].textContent = match[2].toUpperCase();
-    element.children[2].textContent = "\\u00a0& " + match[3].toUpperCase();
+    // The live template replaces the original demo spans with one dynamic
+    // text node, so update the element itself rather than expecting those spans.
+    var text = String(value).trim();
+    if (!text) return false;
+    element.textContent = text;
     return true;
   }
 
