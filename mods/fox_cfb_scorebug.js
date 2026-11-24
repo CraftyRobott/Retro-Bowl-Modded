@@ -51,13 +51,13 @@
         'function color(id,value){var node=el(id);if(!node||typeof value!=="string"||!/^#[0-9a-f]{6}$/i.test(value))return;node.style.setProperty("background-color",value,"important");node.style.setProperty("--team-color",value);}',
         'function possession(id,on){var node=el(id);if(node)node.style.setProperty("display",on?"block":"none","important");}',
         'function timeouts(id,count){var node=el(id);if(!node)return;var n=Math.max(0,Math.min(3,Number(count)||0));Array.prototype.forEach.call(node.children,function(mark,i){mark.style.setProperty("opacity",i<n?"1":"0.18","important");});}',
-        'window.addEventListener("message",function(event){var d=event.data;if(!d||typeof d!=="object"||!d.away||!d.home||!d.game)return;var a=d.away,h=d.home,g=d.game;',
+        'var latest=null;function apply(d){if(!d)return;var a=d.away,h=d.home,g=d.game;',
         'put("awayName",a.name);put("awayScore",a.score);put("awayRank",a.rank?("#"+String(a.rank).replace(/^#/,"")):"");put("awayMascot",a.mascot);put("awayMascot2",a.mascot2);put("awayRecord",a.record);',
         'put("homeName",h.name);put("homeScore",h.score);put("homeRank",h.rank?("#"+String(h.rank).replace(/^#/,"")):"");put("homeMascot",h.mascot);put("homeMascot2",h.mascot2);put("homeRecord",h.record);',
         'put("quarter",g.quarter);put("clock",g.clock);put("playClock",g.playClock);put("downDistance",g.downDistance);',
         'image("awayLogo",a.logo);image("homeLogo",h.logo);color("awayPanel",a.color);color("homePanel",h.color);',
-        'possession("awayPossession",!!a.possession);possession("homePossession",!!h.possession);timeouts("awayTimeoutMarks",a.timeouts);timeouts("homeTimeoutMarks",h.timeouts);',
-        '});})();</script>'
+        'possession("awayPossession",!!a.possession);possession("homePossession",!!h.possession);timeouts("awayTimeoutMarks",a.timeouts);timeouts("homeTimeoutMarks",h.timeouts);}',
+        '}window.addEventListener("message",function(event){var d=event.data;if(!d||typeof d!=="object"||!d.away||!d.home||!d.game)return;latest=d;apply(latest);});setInterval(function(){apply(latest);},250);})();</script>'
       ].join("");
       template = template.replace(/<\/head>/i, bridgeScript + "</head>");
       var transparentDocStyle = '<style id="fox-cfb-live-transparent">html,body,x-dc{background:transparent!important;background-color:transparent!important}body>div{background-color:transparent!important}</style>';
@@ -348,6 +348,7 @@
       away: {
         name: awayName,
         mascot: awayMark,
+        mascot2: "",
         rank: rankFromTeam(awayTeam, inst, other),
         record: recordFromTeam(awayTeam),
         score: String(awayScore),
@@ -359,6 +360,7 @@
       home: {
         name: homeName,
         mascot: homeMark,
+        mascot2: "",
         rank: rankFromTeam(homeTeam, inst, other),
         record: recordFromTeam(homeTeam),
         score: String(homeScore),
