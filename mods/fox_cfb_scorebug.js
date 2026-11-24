@@ -151,24 +151,28 @@
     return String(value).trim();
   }
 
+  function normalizeTeamColor(value) {
+    if (typeof value !== "string") return "";
+    var hex = value.trim().replace(/^\$/, "").replace(/^#/, "");
+    return /^[0-9a-f]{6}$/i.test(hex) ? "#" + hex : "";
+  }
+
   function colorFromTeam(team, fallback) {
     if (!team) return fallback;
-    var keys = ["primary_color", "primaryColor", "primary", "colour", "color", "team_color"];
+    // Teams_CO.txt uses $RRGGBB values in colshirt/colhelmet.
+    var keys = ["colshirt", "colhelmet", "coltertiary", "primary_color", "primaryColor", "primary", "colour", "color", "team_color"];
     for (var i = 0; i < keys.length; i++) {
       try {
-        var value = team[keys[i]];
-        if (typeof value === "string" && /^#?[0-9a-f]{6}$/i.test(value)) {
-          return value.charAt(0) === "#" ? value : "#" + value;
-        }
+        var value = normalizeTeamColor(team[keys[i]]);
+        if (value) return value;
       } catch (_) {}
     }
     try {
       if (typeof window.ds_map_find_value === "function") {
         for (var j = 0; j < keys.length; j++) {
           var color = window.ds_map_find_value(team, keys[j]);
-          if (typeof color === "string" && /^#?[0-9a-f]{6}$/i.test(color)) {
-            return color.charAt(0) === "#" ? color : "#" + color;
-          }
+          var normalized = normalizeTeamColor(color);
+          if (normalized) return normalized;
           if (typeof color === "number" && isFinite(color)) {
             return "#" + ("000000" + (color >>> 0).toString(16)).slice(-6);
           }
@@ -181,6 +185,29 @@
   function logoFromTeam(team) {
     var value = teamValue(team, "logo", teamValue(team, "logo_url", ""));
     return typeof value === "string" ? value.trim() : "";
+  }
+
+  function recordFromTeam(team) {
+    var wins = Number(teamValue(team, "wins", NaN));
+    var losses = Number(teamValue(team, "losses", NaN));
+    var ties = Number(teamValue(team, "ties", 0)) || 0;
+    if (isFinite(wins) && isFinite(losses)) {
+      return String(wins) + "-" + String(losses) + (ties > 0 ? "-" + String(ties) : "");
+    }
+    return asOptionalText(teamValue(team, "record", ""));
+  }
+
+  function rankFromTeam(team, inst, other) {
+    try {
+      if (typeof window.gml_Script_s_get_ranking_pos_data === "function") {
+        var rankData = window.gml_Script_s_get_ranking_pos_data(inst, other, team);
+        var rank = Number(rankData && rankData.gmlpos);
+        if (isFinite(rank) && rank > 0 && rank <= 99) return String(rank);
+      }
+    } catch (_) {}
+    var encoded = Number(teamValue(team, "ranking_pos", 0)) || 0;
+    var fallbackRank = Math.floor(encoded);
+    return fallbackRank > 0 && fallbackRank <= 99 ? String(fallbackRank) : "";
   }
 
   function quarterText(inst) {
@@ -264,8 +291,8 @@
       away: {
         name: awayName,
         mascot: awayMark,
-        rank: asOptionalText(teamValue(awayTeam, "rank", "")),
-        record: asOptionalText(teamValue(awayTeam, "record", "")),
+        rank: rankFromTeam(awayTeam, inst, other),
+        record: recordFromTeam(awayTeam),
         score: String(awayScore),
         color: colorFromTeam(awayTeam, "#8c2d2e"),
         logo: logoFromTeam(awayTeam),
@@ -275,8 +302,8 @@
       home: {
         name: homeName,
         mascot: homeMark,
-        rank: asOptionalText(teamValue(homeTeam, "rank", "")),
-        record: asOptionalText(teamValue(homeTeam, "record", "")),
+        rank: rankFromTeam(homeTeam, inst, other),
+        record: recordFromTeam(homeTeam),
         score: String(homeScore),
         color: colorFromTeam(homeTeam, "#1e2e45"),
         logo: logoFromTeam(homeTeam),
