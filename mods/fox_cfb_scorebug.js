@@ -175,6 +175,51 @@
     return true;
   }
 
+  var quarterObserver = null;
+  var observedQuarterElement = null;
+  var latestQuarterText = "";
+
+  function updateNativeQuarter(doc, value) {
+    if (!doc || value === undefined || value === null) return false;
+
+    var text = String(value).trim();
+    if (!text) return false;
+    latestQuarterText = text;
+
+    var element = doc.getElementById("quarter");
+    if (!element) return false;
+
+    // The exported component leaves the original demo quarter in this node
+    // even after __dcSetProps receives gameQuarter. Keep this isolated from
+    // the clock, score animations, and down/distance observer.
+    if (element !== observedQuarterElement &&
+        typeof doc.defaultView.MutationObserver === "function") {
+      if (quarterObserver) quarterObserver.disconnect();
+      observedQuarterElement = element;
+      quarterObserver = new doc.defaultView.MutationObserver(function () {
+        var current = doc.getElementById("quarter");
+        if (current && latestQuarterText) {
+          var currentText = String(current.textContent || "").replace(/\s+/g, " ").trim().toUpperCase();
+          var liveText = String(latestQuarterText).replace(/\s+/g, " ").trim().toUpperCase();
+          if (currentText !== liveText) current.textContent = latestQuarterText;
+        }
+      });
+      quarterObserver.observe(element, {
+        subtree: true,
+        childList: true,
+        characterData: true
+      });
+    }
+
+    var normalize = function (value) {
+      return String(value || "").replace(/\s+/g, " ").trim().toUpperCase();
+    };
+    if (normalize(element.textContent) !== normalize(text)) {
+      element.textContent = text;
+    }
+    return true;
+  }
+
   function sendState(state) {
     pendingState = state;
     if (!frame || !frameReady || !state) return;
@@ -223,16 +268,21 @@
       // The exported FOX binding does not update this field reliably, so
       // synchronize the original three-span down-and-distance element directly.
       updateNativeDownDistance(child.document, componentProps.gameDownDistance);
+      updateNativeQuarter(child.document, componentProps.gameQuarter);
 
       // Read the rendered iframe text after the component has had a chance to update.
       window.setTimeout(function () {
         try {
           // Reapply after React's render in case it restored the demo text.
           updateNativeDownDistance(child.document, componentProps.gameDownDistance);
+          updateNativeQuarter(child.document, componentProps.gameQuarter);
           var renderedText = child.document && child.document.body
             ? String(child.document.body.innerText || child.document.body.textContent || "").replace(/\\s+/g, " ").trim()
             : "[FOX iframe document unavailable]";
           console.log(TAG, "FOX rendered text after input update:", {
+            sentQuarter: componentProps.gameQuarter,
+            renderedContainsSentQuarter: !!componentProps.gameQuarter &&
+              renderedText.indexOf(String(componentProps.gameQuarter)) !== -1,
             sentDownDistance: componentProps.gameDownDistance,
             renderedContainsSentValue: !!componentProps.gameDownDistance &&
               renderedText.indexOf(String(componentProps.gameDownDistance)) !== -1,
