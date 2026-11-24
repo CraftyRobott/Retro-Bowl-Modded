@@ -132,12 +132,13 @@
   var downDistanceObserver = null;
   var observedDownDistanceElement = null;
   var latestDownDistanceText = "";
+  // The opening kickoff can briefly expose a stale 2ND & 5 value.
+  var startupDownDistancePending = true;
 
   function updateNativeDownDistance(doc, value) {
     if (!doc || value === undefined || value === null) return false;
 
     var text = String(value).trim();
-    if (!text) return false;
     latestDownDistanceText = text;
 
     var element = doc.getElementById("downDistance");
@@ -152,7 +153,7 @@
       observedDownDistanceElement = element;
       downDistanceObserver = new doc.defaultView.MutationObserver(function () {
         var current = doc.getElementById("downDistance");
-        if (current && latestDownDistanceText) {
+        if (current) {
           var currentText = String(current.textContent || "").replace(/\s+/g, " ").trim().toUpperCase();
           var liveText = String(latestDownDistanceText).replace(/\s+/g, " ").trim().toUpperCase();
           if (currentText !== liveText) current.textContent = latestDownDistanceText;
@@ -509,29 +510,40 @@
   }
 
   function downDistanceText(inst, other) {
+    var text = "";
+
     // Use Retro Bowl's own formatter first. The working SEC scorebug calls
     // this exact helper with the scoreboard's _inst/_other arguments.
     try {
       if (typeof window.gml_Script_s_get_string_downand === "function") {
         var nativeText = window.gml_Script_s_get_string_downand(inst, other);
-        if (nativeText !== undefined && nativeText !== null && String(nativeText).trim()) {
-          return String(nativeText).trim();
-        }
+        if (nativeText !== undefined && nativeText !== null) text = String(nativeText).trim();
       }
     } catch (error) {
       console.warn(TAG, "Native down/distance formatter failed; using field fallback.", error);
     }
 
     // Compatibility fallback only for builds where the native helper is unavailable.
-    var down = Math.round(gameNumber(inst, "gmldown", 0));
-    if (down < 1 || down > 4) return "";
-    var yardLine = gameNumber(inst, "gmlx_yards", NaN);
-    var yardsToGo = gameNumber(inst, "gmlyards", NaN);
-    var label = down === 1 ? "1ST" : down === 2 ? "2ND" : down === 3 ? "3RD" : "4TH";
-    if (isFinite(yardLine) && (yardLine < 300 || yardLine > 2300)) return label + " & GOAL";
-    if (isFinite(yardsToGo) && yardsToGo < 1) return label + " & INCHES";
-    if (isFinite(yardsToGo)) return label + " & " + String(Math.round(yardsToGo));
-    return "";
+    if (!text) {
+      var down = Math.round(gameNumber(inst, "gmldown", 0));
+      if (down >= 1 && down <= 4) {
+        var yardLine = gameNumber(inst, "gmlx_yards", NaN);
+        var yardsToGo = gameNumber(inst, "gmlyards", NaN);
+        var label = down === 1 ? "1ST" : down === 2 ? "2ND" : down === 3 ? "3RD" : "4TH";
+        if (isFinite(yardLine) && (yardLine < 300 || yardLine > 2300)) text = label + " & GOAL";
+        else if (isFinite(yardsToGo) && yardsToGo < 1) text = label + " & INCHES";
+        else if (isFinite(yardsToGo)) text = label + " & " + String(Math.round(yardsToGo));
+      }
+    }
+
+    // Hide only the stale startup value until a real live down/distance arrives.
+    if (startupDownDistancePending) {
+      var normalized = String(text).replace(/\\s+/g, " ").trim().toUpperCase();
+      if (normalized === "2ND & 5" || normalized === "2ND AND 5") return "";
+      if (normalized) startupDownDistancePending = false;
+    }
+
+    return text;
   }
 
   function getSettings(inst, other) {
