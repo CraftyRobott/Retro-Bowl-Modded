@@ -41,7 +41,7 @@
       var greenMatches = (template.match(/#00b140/gi) || []).length;
       template = template.replace(/#00b140/gi, "transparent");
       console.log(TAG, "Removed", greenMatches, "chroma-key green references from the FOX template.");
-      var patched = html.slice(0, match.index) + match[1] + JSON.stringify(template) + match[3] +
+      var patched = html.slice(0, match.index) + match[1] + JSON.stringify(template).replace(/</g, "\\u003C") + match[3] +
         html.slice(match.index + match[0].length);
       // The original chroma-key adapter paints the document green as well.
       // Override only that host canvas background; the FOX artwork is untouched.
