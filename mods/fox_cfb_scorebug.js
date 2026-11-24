@@ -12,6 +12,7 @@
   var originalScoreboard = window.gml_Script_s_draw_scoreboard;
   var frame = null;
   var frameReady = false;
+  var frameRootName = "Root";
   var frameLoading = false;
   var loadFailed = false;
   var lastActiveAt = 0;
@@ -47,7 +48,7 @@
       template = template.replace(/background-color:\s*#00b140/gi, "background-color: transparent");
       var transparentDocStyle = '<style id="fox-cfb-live-transparent">html,body,x-dc,x-dc>div,body>div{background:transparent!important;background-color:transparent!important}*[style*="#00b140"]{background:transparent!important;background-color:transparent!important}</style>';
       template = template.replace(/<head([^>]*)>/i, '<head$1>' + transparentDocStyle);
-      console.log(TAG, "Removed", greenMatches, "chroma-key green references and installed live-data bridge.");
+      console.log(TAG, "Removed", greenMatches, "chroma-key green references and prepared native component inputs.");
       var patched = html.slice(0, match.index) + match[1] + JSON.stringify(template).replace(/</g, "\\u003C") + match[3] +
         html.slice(match.index + match[0].length);
       // The original chroma-key adapter paints the document green as well.
