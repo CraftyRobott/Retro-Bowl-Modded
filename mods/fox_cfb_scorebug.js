@@ -359,17 +359,23 @@
     return isFinite(number) ? number : fallback;
   }
 
-  function quarterText(inst) {
+  function quarterText(inst, other) {
+    var quarter = gameNumber(inst, "gmlquarter", NaN);
+    if (!isFinite(quarter)) return "";
+    var text = "";
+    try {
+      // Match the game's own stock scoreboard and the working SEC scorebug.
+      if (typeof window.gml_Script_s_str === "function") {
+        text = window.gml_Script_s_str(inst, other, "quarter_" + String(quarter));
+      }
+    } catch (error) {
+      console.warn(TAG, "Native quarter formatter failed.", error);
+    }
     if (inst.gmlcollege_overtime) {
       var round = gameNumber(inst, "gmlcollege_overtime_round", 1);
-      return round > 1 ? "OT" + round : "OT";
+      if (quarter >= 5 && round > 1) return String(round) + " " + String(text || "OT");
     }
-    var quarter = Math.round(gameNumber(inst, "gmlquarter", 1));
-    if (quarter >= 5) return "OT";
-    if (quarter <= 1) return "1ST";
-    if (quarter === 2) return "2ND";
-    if (quarter === 3) return "3RD";
-    return "4TH";
+    return asText(text, "");
   }
 
   function downDistanceText(inst, other) {
@@ -486,7 +492,7 @@
         timeouts: Math.max(0, Math.min(3, Math.round(homeTimeouts)))
       },
       game: {
-        quarter: quarterText(inst),
+        quarter: quarterText(inst, other),
         clock: clock,
         playClock: "",
         downDistance: downDistance
@@ -507,11 +513,22 @@
       lastSnapshot = signature;
       console.log(TAG, "Live game fields:", {
         quarter: inst.gmlquarter,
+        nativeQuarter: (function () {
+          try {
+            return typeof window.gml_Script_s_str === "function"
+              ? window.gml_Script_s_str(inst, other, "quarter_" + String(inst.gmlquarter))
+              : "native string helper unavailable";
+          } catch (error) {
+            return "native quarter error: " + String(error);
+          }
+        })(),
         overtime: inst.gmlcollege_overtime,
         overtimeRound: inst.gmlcollege_overtime_round,
         down: inst.gmldown,
         yardLine: inst.gmlx_yards,
         yardsToGo: inst.gmlyards,
+        matchQuarter: (function () { var m = getMatch(inst, other); return m ? m.gmlquarter : undefined; })(),
+        matchDown: (function () { var m = getMatch(inst, other); return m ? m.gmldown : undefined; })(),
         nativeDownDistance: (function () {
           try {
             return typeof window.gml_Script_s_get_string_downand === "function"
