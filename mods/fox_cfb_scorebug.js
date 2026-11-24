@@ -74,7 +74,7 @@
     if (!style) {
       style = document.createElement("style");
       style.id = "fox-cfb-scorebug-style";
-      style.textContent = \`
+      style.textContent = `
         #fox-cfb-scorebug {
           --fox-away:#8b1e2d; --fox-home:#173b67;
           position:fixed; z-index:99990; top:max(5px, env(safe-area-inset-top)); left:50%;
@@ -114,13 +114,13 @@
         #fox-cfb-scorebug .fox-away .fox-score { order:3; }
         #fox-cfb-scorebug .fox-home .fox-score { order:3; }
         @media(max-width:430px) { #fox-cfb-scorebug { width:98vw; grid-template-columns:minmax(0,1fr) 94px minmax(0,1fr); } #fox-cfb-scorebug .fox-team { gap:3px; padding:4px; } #fox-cfb-scorebug .fox-meta { gap:3px; } }
-      \`;
+      `;
       document.head.appendChild(style);
     }
 
     overlay = document.createElement("div");
     overlay.id = "fox-cfb-scorebug";
-    overlay.innerHTML = \`
+    overlay.innerHTML = `
       <div class="fox-team fox-away" id="fox-away">
         <div class="fox-mark" id="fox-away-mark">AW</div>
         <div class="fox-team-copy"><div class="fox-name" id="fox-away-name">AWAY</div><div class="fox-meta"><span id="fox-away-record">COLLEGE</span></div><div class="fox-tos" id="fox-away-tos"></div></div>
@@ -131,7 +131,7 @@
         <div class="fox-mark" id="fox-home-mark">HM</div>
         <div class="fox-team-copy"><div class="fox-name" id="fox-home-name">HOME</div><div class="fox-meta"><span id="fox-home-record">COLLEGE</span></div><div class="fox-tos" id="fox-home-tos"></div></div>
         <div class="fox-score" id="fox-home-score">0</div><i class="fox-pos"></i>
-      </div>\`;
+      </div>`;
     document.body.appendChild(overlay);
     return overlay;
   }
