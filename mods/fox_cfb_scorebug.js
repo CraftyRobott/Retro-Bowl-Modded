@@ -482,6 +482,12 @@
     logError("Could not find gml_Script_s_draw_scoreboard; scorebug not installed.");
   }
 
+  // The FOX unpacker asynchronously replaces the iframe document after its load event.
+  // Reapply state until the final rendered document and its bound nodes are present.
+  window.setInterval(function () {
+    if (frameReady && pendingState) sendState(pendingState);
+  }, 250);
+
   // The hook runs every frame only during gameplay; hide the overlay after play stops.
   window.setInterval(function () {
     if (frame && lastActiveAt && Date.now() - lastActiveAt > 1800) hideOverlay();
