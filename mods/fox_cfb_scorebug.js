@@ -1,38 +1,154 @@
-// @name FOX CFB Broadcast Scorebug
-// @description Replaces Retro Bowl College's in-game score strip with a responsive FOX-inspired broadcast scoreboard.
+// @name FOX CFB Original Scorebug
+// @description Preserves the uploaded FOX CFB scoreboard design and connects it to Retro Bowl College game data.
 // @category presentation
-// Repository source: mods/fox_cfb_scorebug.js
-// The offline installer copies selected public mods into the game's engine/mods/ folder.
+// Design source: mods/fox_cfb_scorebug_source.html
 (function () {
   "use strict";
 
-  if (window.__foxCfbScorebugInstalled) return;
-  window.__foxCfbScorebugInstalled = true;
+  if (window.__foxCfbOriginalScorebugInstalled) return;
+  window.__foxCfbOriginalScorebugInstalled = true;
 
   var TAG = "[FOX CFB]";
-  var previousScores = [null, null];
-  var overlay = null;
-  var lastSnapshot = "";
   var originalScoreboard = window.gml_Script_s_draw_scoreboard;
+  var frame = null;
+  var frameReady = false;
+  var frameLoading = false;
+  var loadFailed = false;
+  var lastActiveAt = 0;
+  var lastSnapshot = "";
+  var pendingState = null;
+  var resizeHandler = null;
+
+  function logError(message, error) {
+    console.error(TAG, message, error || "");
+  }
+
+  function fetchSource() {
+    var urls = [
+      "engine/mods/fox_cfb_scorebug_source.html",
+      "mods/fox_cfb_scorebug_source.html",
+      "https://raw.githubusercontent.com/CraftyRobott/Retro-Bowl-Modded/main/mods/fox_cfb_scorebug_source.html"
+    ];
+
+    function attempt(index) {
+      if (index >= urls.length) return Promise.reject(new Error("No scorebug source URL could be loaded."));
+      return fetch(urls[index], { cache: "no-cache" }).then(function (response) {
+        if (!response.ok) throw new Error("HTTP " + response.status + " from " + urls[index]);
+        return response.text();
+      }).then(function (html) {
+        if (html.indexOf("data-dc-script") === -1 || html.indexOf("data-cfb27-scorebug") === -1) {
+          throw new Error("The fetched file is not the standalone FOX scorebug source.");
+        }
+        console.log(TAG, "Loaded scorebug source from", urls[index]);
+        return html;
+      }).catch(function (error) {
+        if (index + 1 < urls.length) return attempt(index + 1);
+        throw error;
+      });
+    }
+
+    return attempt(0);
+  }
+
+  function layoutFrame() {
+    if (!frame) return;
+    var vw = Math.max(1, window.innerWidth || document.documentElement.clientWidth || 1);
+    var scale = Math.min(1, vw / 1920);
+    // The source canvas is 2315x534; its actual scoreboard is 1920x400 at (184,122).
+    // Crop only the transparent canvas margins, not any part of the original artwork.
+    frame.style.left = (vw / 2 - 1144 * scale) + "px";
+    frame.style.top = (-118 * scale) + "px";
+    frame.style.transform = "scale(" + scale + ")";
+  }
+
+  function sendState(state) {
+    pendingState = state;
+    if (!frame || !frameReady || !frame.contentWindow || !state) return;
+    try {
+      frame.contentWindow.postMessage(state, "*");
+    } catch (error) {
+      logError("Could not send live game data to the scorebug.", error);
+    }
+  }
+
+  function ensureOverlay() {
+    if (frame && document.body.contains(frame)) return frame;
+    if (frameLoading || loadFailed) return frame;
+
+    frameLoading = true;
+    frame = document.createElement("iframe");
+    frame.id = "fox-cfb-original-scorebug-frame";
+    frame.title = "FOX CFB Scorebug";
+    frame.setAttribute("aria-hidden", "true");
+    frame.setAttribute("tabindex", "-1");
+    frame.style.cssText = "position:fixed;left:0;top:0;width:2315px;height:534px;border:0;margin:0;padding:0;z-index:2147483646;pointer-events:none;overflow:hidden;background:transparent;transform-origin:top left;visibility:hidden;";
+    frame.onload = function () {
+      frameReady = true;
+      frameLoading = false;
+      frame.style.visibility = "visible";
+      layoutFrame();
+      if (pendingState) sendState(pendingState);
+      console.log(TAG, "Original HTML/CSS scorebug loaded.");
+    };
+    frame.onerror = function (error) {
+      frameReady = false;
+      frameLoading = false;
+      loadFailed = true;
+      logError("The original scorebug iframe failed to load.", error);
+    };
+    document.body.appendChild(frame);
+
+    fetchSource().then(function (html) {
+      if (frame) frame.srcdoc = html;
+    }).catch(function (error) {
+      frameLoading = false;
+      loadFailed = true;
+      frameReady = false;
+      if (frame && frame.parentNode) frame.parentNode.removeChild(frame);
+      frame = null;
+      logError("Could not load the preserved FOX scorebug source. The stock scoreboard will remain active.", error);
+    });
+
+    layoutFrame();
+    if (!resizeHandler) {
+      resizeHandler = layoutFrame;
+      window.addEventListener("resize", resizeHandler, { passive: true });
+      window.addEventListener("orientationchange", resizeHandler, { passive: true });
+    }
+    return frame;
+  }
 
   function safeArray(value, index, fallback) {
     try {
       if (value == null) return fallback;
       var result = value[index];
       return result == null ? fallback : result;
-    } catch (_) { return fallback; }
+    } catch (_) {
+      return fallback;
+    }
   }
 
-  function safeText(value, fallback) {
-    if (value === undefined || value === null || value === "") return fallback;
-    return String(value);
+  function teamValue(team, key, fallback) {
+    try {
+      if (team && team[key] !== undefined && team[key] !== null) return team[key];
+      if (team && typeof window.ds_map_find_value === "function") {
+        var value = window.ds_map_find_value(team, key);
+        if (value !== undefined && value !== null) return value;
+      }
+    } catch (_) {}
+    return fallback;
   }
 
-  function ordinal(q) {
-    q = Number(q);
-    if (!q || !isFinite(q)) return "PRE";
-    if (q >= 5) return q === 5 ? "OT" : (q - 4) + "OT";
-    return q + (q === 1 ? "ST" : q === 2 ? "ND" : q === 3 ? "RD" : "TH");
+  function asText(value, fallback) {
+    if (value === undefined || value === null) return fallback;
+    var result = String(value).trim();
+    return result ? result : fallback;
+  }
+
+  function asOptionalText(value) {
+    if (value === undefined || value === null) return "";
+    if (typeof value !== "string" && typeof value !== "number") return "";
+    return String(value).trim();
   }
 
   function colorFromTeam(team, fallback) {
@@ -40,215 +156,204 @@
     var keys = ["primary_color", "primaryColor", "primary", "colour", "color", "team_color"];
     for (var i = 0; i < keys.length; i++) {
       try {
-        var v = team[keys[i]];
-        if (typeof v === "string" && (/^#?[0-9a-f]{6}$/i).test(v)) return v.charAt(0) === "#" ? v : "#" + v;
+        var value = team[keys[i]];
+        if (typeof value === "string" && /^#?[0-9a-f]{6}$/i.test(value)) {
+          return value.charAt(0) === "#" ? value : "#" + value;
+        }
       } catch (_) {}
     }
     try {
       if (typeof window.ds_map_find_value === "function") {
         for (var j = 0; j < keys.length; j++) {
-          var c = window.ds_map_find_value(team, keys[j]);
-          if (typeof c === "string" && (/^#?[0-9a-f]{6}$/i).test(c)) return c.charAt(0) === "#" ? c : "#" + c;
-          if (typeof c === "number" && isFinite(c)) return "#" + ("000000" + (c >>> 0).toString(16)).slice(-6);
+          var color = window.ds_map_find_value(team, keys[j]);
+          if (typeof color === "string" && /^#?[0-9a-f]{6}$/i.test(color)) {
+            return color.charAt(0) === "#" ? color : "#" + color;
+          }
+          if (typeof color === "number" && isFinite(color)) {
+            return "#" + ("000000" + (color >>> 0).toString(16)).slice(-6);
+          }
         }
       }
     } catch (_) {}
     return fallback;
   }
 
-  function teamValue(team, key, fallback) {
+  function logoFromTeam(team) {
+    var value = teamValue(team, "logo", teamValue(team, "logo_url", ""));
+    return typeof value === "string" ? value.trim() : "";
+  }
+
+  function quarterText(inst) {
+    if (inst.gmlcollege_overtime) {
+      var round = Number(inst.gmlcollege_overtime_round) || 1;
+      return round > 1 ? "OT" + round : "OT";
+    }
+    var quarter = Number(inst.gmlquarter) || 1;
+    if (quarter >= 5) return "OT";
+    return quarter === 1 ? "1ST" : quarter === 2 ? "2ND" : quarter === 3 ? "3RD" : "4TH";
+  }
+
+  function getSettings(inst, other) {
     try {
-      if (team && team[key] !== undefined && team[key] !== null) return team[key];
-      if (typeof window.ds_map_find_value === "function") {
-        var v = window.ds_map_find_value(team, key);
-        if (v !== undefined && v !== null && v !== "") return v;
+      if (typeof window.yyInst === "function" && typeof window.YYASSET_REF === "function") {
+        return window.yyInst(inst, other, window.YYASSET_REF(0x00000062));
       }
     } catch (_) {}
-    return fallback;
+    return null;
   }
 
-  function ensureOverlay() {
-    if (overlay && document.body.contains(overlay)) return overlay;
-
-    var style = document.getElementById("fox-cfb-scorebug-style");
-    if (!style) {
-      style = document.createElement("style");
-      style.id = "fox-cfb-scorebug-style";
-      style.textContent = `
-        #fox-cfb-scorebug {
-          --fox-away:#8b1e2d; --fox-home:#173b67;
-          position:fixed; z-index:99990; top:max(5px, env(safe-area-inset-top)); left:50%;
-          transform:translateX(-50%); width:min(96vw, 830px); height:clamp(66px, 10.5vw, 88px);
-          display:grid; grid-template-columns:minmax(0,1fr) clamp(104px,19vw,166px) minmax(0,1fr);
-          overflow:hidden; color:#fff; background:#101317; border:1px solid rgba(255,255,255,.34);
-          box-shadow:0 4px 14px rgba(0,0,0,.48); font-family:Arial,Helvetica,sans-serif;
-          pointer-events:none; user-select:none; isolation:isolate;
-        }
-        #fox-cfb-scorebug * { box-sizing:border-box; }
-        #fox-cfb-scorebug .fox-team { min-width:0; position:relative; display:grid; grid-template-columns:clamp(27px,5vw,42px) minmax(0,1fr) auto; align-items:center; gap:clamp(4px,1vw,9px); padding:5px clamp(6px,1.2vw,12px); overflow:hidden; }
-        #fox-cfb-scorebug .fox-team:before { content:""; position:absolute; inset:0; z-index:-2; background:linear-gradient(115deg,rgba(255,255,255,.12),transparent 35%,rgba(0,0,0,.34)); }
-        #fox-cfb-scorebug .fox-team:after { content:""; position:absolute; z-index:-1; width:55%; height:220%; top:-60%; opacity:.17; transform:rotate(28deg); background:repeating-linear-gradient(90deg,transparent 0 9px,#fff 10px 12px,transparent 13px 21px); }
-        #fox-cfb-scorebug .fox-away { background:var(--fox-away); }
-        #fox-cfb-scorebug .fox-home { background:var(--fox-home); }
-        #fox-cfb-scorebug .fox-away:after { right:-12%; }
-        #fox-cfb-scorebug .fox-home:after { left:-12%; }
-        #fox-cfb-scorebug .fox-mark { width:clamp(25px,4.5vw,38px); height:clamp(25px,4.5vw,38px); border:2px solid rgba(255,255,255,.9); border-radius:50%; display:grid; place-items:center; background:rgba(0,0,0,.23); font-weight:900; font-size:clamp(10px,1.8vw,15px); letter-spacing:-.06em; text-shadow:0 1px 2px #000; }
-        #fox-cfb-scorebug .fox-team-copy { min-width:0; display:flex; flex-direction:column; justify-content:center; gap:2px; }
-        #fox-cfb-scorebug .fox-name { font-weight:900; font-stretch:condensed; font-size:clamp(10px,1.9vw,16px); line-height:1; letter-spacing:.025em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-transform:uppercase; text-shadow:0 1px 2px #000; }
-        #fox-cfb-scorebug .fox-meta { display:flex; gap:6px; align-items:center; font-size:clamp(8px,1.15vw,10px); font-weight:700; opacity:.88; white-space:nowrap; }
-        #fox-cfb-scorebug .fox-tos { display:flex; gap:3px; margin-top:2px; }
-        #fox-cfb-scorebug .fox-to { width:clamp(8px,1.2vw,11px); height:3px; background:rgba(255,255,255,.25); transform:skewX(-25deg); }
-        #fox-cfb-scorebug .fox-to.on { background:#fff; box-shadow:0 0 3px rgba(255,255,255,.6); }
-        #fox-cfb-scorebug .fox-score { font-family:Impact,"Arial Narrow",sans-serif; font-size:clamp(27px,5vw,43px); line-height:.9; font-weight:900; letter-spacing:-.045em; min-width:1ch; text-align:center; padding:0 3px; text-shadow:0 2px 3px rgba(0,0,0,.55); }
-        #fox-cfb-scorebug .fox-score.bump { animation:foxScorePop .62s cubic-bezier(.2,.85,.25,1); }
-        @keyframes foxScorePop { 0%{transform:scale(1);color:#fff} 22%{transform:scale(1.42);color:#f7d24b;text-shadow:0 0 15px rgba(255,220,75,.9)} 100%{transform:scale(1);color:#fff} }
-        #fox-cfb-scorebug .fox-center { position:relative; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:3px; background:linear-gradient(180deg,#252a30,#0b0d10); border-left:2px solid #d4b13d; border-right:2px solid #d4b13d; padding:3px 4px; }
-        #fox-cfb-scorebug .fox-network { font-weight:1000; font-style:italic; font-size:clamp(9px,1.5vw,13px); line-height:1; letter-spacing:.12em; color:#fff; }
-        #fox-cfb-scorebug .fox-network span { color:#e9c64e; }
-        #fox-cfb-scorebug .fox-clock { font-family:Impact,"Arial Narrow",sans-serif; font-size:clamp(17px,3vw,25px); line-height:1; letter-spacing:.02em; color:#f2d35a; }
-        #fox-cfb-scorebug .fox-situation { max-width:100%; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-size:clamp(7px,1.1vw,9px); line-height:1; font-weight:800; letter-spacing:.08em; color:#e7e9eb; }
-        #fox-cfb-scorebug .fox-pos { position:absolute; top:4px; width:0; height:0; border-top:5px solid transparent; border-bottom:5px solid transparent; filter:drop-shadow(0 1px 1px #000); }
-        #fox-cfb-scorebug .fox-away .fox-pos { left:3px; border-left:7px solid #f4d24f; }
-        #fox-cfb-scorebug .fox-home .fox-pos { right:3px; border-right:7px solid #f4d24f; }
-        #fox-cfb-scorebug .fox-team:not(.has-ball) .fox-pos { display:none; }
-        #fox-cfb-scorebug .fox-away .fox-score { order:3; }
-        #fox-cfb-scorebug .fox-home .fox-score { order:3; }
-        @media(max-width:430px) { #fox-cfb-scorebug { width:98vw; grid-template-columns:minmax(0,1fr) 94px minmax(0,1fr); } #fox-cfb-scorebug .fox-team { gap:3px; padding:4px; } #fox-cfb-scorebug .fox-meta { gap:3px; } }
-      `;
-      document.head.appendChild(style);
-    }
-
-    overlay = document.createElement("div");
-    overlay.id = "fox-cfb-scorebug";
-    overlay.innerHTML = `
-      <div class="fox-team fox-away" id="fox-away">
-        <div class="fox-mark" id="fox-away-mark">AW</div>
-        <div class="fox-team-copy"><div class="fox-name" id="fox-away-name">AWAY</div><div class="fox-meta"><span id="fox-away-record">COLLEGE</span></div><div class="fox-tos" id="fox-away-tos"></div></div>
-        <div class="fox-score" id="fox-away-score">0</div><i class="fox-pos"></i>
-      </div>
-      <div class="fox-center"><div class="fox-network">FOX <span>CFB</span></div><div class="fox-clock" id="fox-clock">15:00</div><div class="fox-situation"><span id="fox-quarter">1ST</span><span> · </span><span id="fox-down">LIVE</span></div></div>
-      <div class="fox-team fox-home" id="fox-home">
-        <div class="fox-mark" id="fox-home-mark">HM</div>
-        <div class="fox-team-copy"><div class="fox-name" id="fox-home-name">HOME</div><div class="fox-meta"><span id="fox-home-record">COLLEGE</span></div><div class="fox-tos" id="fox-home-tos"></div></div>
-        <div class="fox-score" id="fox-home-score">0</div><i class="fox-pos"></i>
-      </div>`;
-    document.body.appendChild(overlay);
-    return overlay;
-  }
-
-  function setText(id, value) {
-    var el = document.getElementById(id);
-    if (el && el.textContent !== String(value)) el.textContent = String(value);
-  }
-
-  function renderTimeouts(id, count) {
-    var el = document.getElementById(id);
-    if (!el) return;
-    count = Math.max(0, Math.min(3, Number(count) || 0));
-    var html = "";
-    for (var i = 0; i < 3; i++) html += '<i class="fox-to' + (i < count ? ' on' : '') + '"></i>';
-    if (el.innerHTML !== html) el.innerHTML = html;
-  }
-
-  function updateFromController(inst, other) {
-    // Retro Bowl College stores team abbreviations on each team map (team[].tla);
-    // it does not expose a controller-level gmlteam_name array in this build.
-    if (!inst || !inst.gmlteam) return;
-    var settings = null;
+  function getMatch(inst, other) {
     try {
-      if (typeof window.yyInst === "function" && typeof window.YYASSET_REF === "function") settings = window.yyInst(inst, other, window.YYASSET_REF(0x00000062));
+      if (typeof window.yyInst === "function" && typeof window.YYASSET_REF === "function") {
+        return window.yyInst(inst, other, window.YYASSET_REF(0x00000069));
+      }
     } catch (_) {}
-    if (settings && settings.gmlgamepractice) {
-      if (overlay) overlay.style.display = "none";
-      return;
-    }
+    return null;
+  }
 
-    var team0 = safeArray(inst.gmlteam, 0, null);
-    var team1 = safeArray(inst.gmlteam, 1, null);
-    var name0 = safeText(safeArray(inst.gmlteam_name, 0, teamValue(team0, "tla", "AWAY")), "AWAY");
-    var name1 = safeText(safeArray(inst.gmlteam_name, 1, teamValue(team1, "tla", "HOME")), "HOME");
-    var score0 = safeText(safeArray(inst.gmlteam_score, 0, 0), "0");
-    var score1 = safeText(safeArray(inst.gmlteam_score, 1, 0), "0");
+  function buildState(inst, other) {
+    if (!inst || !inst.gmlteam) return null;
+    var awayTeam = safeArray(inst.gmlteam, 0, null);
+    var homeTeam = safeArray(inst.gmlteam, 1, null);
+    if (!awayTeam || !homeTeam) return null;
+
+    // Team maps expose the full display name and the short team abbreviation.
+    var awayName = asText(teamValue(awayTeam, "name", ""), asText(teamValue(awayTeam, "tla", "AWAY"), "AWAY"));
+    var homeName = asText(teamValue(homeTeam, "name", ""), asText(teamValue(homeTeam, "tla", "HOME"), "HOME"));
+    var awayMark = asText(teamValue(awayTeam, "tla", ""), "");
+    var homeMark = asText(teamValue(homeTeam, "tla", ""), "");
+    var awayScore = Number(safeArray(inst.gmlteam_score, 0, 0)) || 0;
+    var homeScore = Number(safeArray(inst.gmlteam_score, 1, 0)) || 0;
+
     var minutes = Math.max(0, Number(inst.gmlminutes) || 0);
     var seconds = Math.max(0, Number(inst.gmlseconds) || 0);
     var clock = minutes + ":" + (seconds < 10 ? "0" : "") + Math.floor(seconds);
-    var quarter = ordinal(inst.gmlquarter);
-    var down = "LIVE";
+    var downDistance = "";
     try {
       if (typeof window.gml_Script_s_get_string_downand === "function" && Number(inst.gmldown) > 0) {
-        down = String(window.gml_Script_s_get_string_downand(inst, other));
+        downDistance = String(window.gml_Script_s_get_string_downand(inst, other));
       }
     } catch (_) {}
 
-    var match = null;
+    var match = getMatch(inst, other);
+    var awayTimeouts = 3;
+    var homeTimeouts = 3;
+    var settings = getSettings(inst, other);
+    var exhibitionNoPlayer = false;
     try {
-      if (typeof window.yyInst === "function" && typeof window.YYASSET_REF === "function") match = window.yyInst(inst, other, window.YYASSET_REF(0x00000069));
+      exhibitionNoPlayer = !!(typeof global !== "undefined" && global.gmlexhibition &&
+        settings && Number(settings.gmlplayerteamindex) === -1);
     } catch (_) {}
 
-    var timeouts0 = match ? (Number(match.gmltimeouts) || 0) : 3;
-    var timeouts1 = match ? (Number(match.gmltimeouts_p2) || 0) : 3;
-    var poss = Number(inst.gmlpossession) || 0;
-    var color0 = colorFromTeam(team0, "#8b1e2d");
-    var color1 = colorFromTeam(team1, "#173b67");
-    var snapshot = [name0,name1,score0,score1,clock,quarter,down,poss,timeouts0,timeouts1,color0,color1].join("|");
-    if (snapshot === lastSnapshot) return;
-    lastSnapshot = snapshot;
-
-    var root = ensureOverlay();
-    root.style.display = "grid";
-    root.style.setProperty("--fox-away", color0);
-    root.style.setProperty("--fox-home", color1);
-    setText("fox-away-name", name0);
-    setText("fox-home-name", name1);
-    setText("fox-away-mark", name0.replace(/[^A-Z0-9]/gi, "").slice(0,2).toUpperCase() || "A");
-    setText("fox-home-mark", name1.replace(/[^A-Z0-9]/gi, "").slice(0,2).toUpperCase() || "H");
-    setText("fox-clock", clock);
-    setText("fox-quarter", quarter);
-    setText("fox-down", down);
-    renderTimeouts("fox-away-tos", timeouts0);
-    renderTimeouts("fox-home-tos", timeouts1);
-    document.getElementById("fox-away").classList.toggle("has-ball", poss === 0);
-    document.getElementById("fox-home").classList.toggle("has-ball", poss === 1);
-
-    [["fox-away-score",score0,0],["fox-home-score",score1,1]].forEach(function (item) {
-      var el = document.getElementById(item[0]);
-      if (!el) return;
-      if (previousScores[item[2]] !== null && previousScores[item[2]] !== item[1]) {
-        el.classList.remove("bump");
-        void el.offsetWidth;
-        el.classList.add("bump");
+    if (match) {
+      if (exhibitionNoPlayer) {
+        awayTimeouts = match.gmltimeouts !== undefined ? Number(match.gmltimeouts) : 3;
+        homeTimeouts = match.gmltimeouts_p2 !== undefined ? Number(match.gmltimeouts_p2) : 3;
+      } else if (Number(inst.gmlhuman_team) === 0) {
+        awayTimeouts = match.gmltimeouts !== undefined ? Number(match.gmltimeouts) : 3;
+      } else if (Number(inst.gmlhuman_team) === 1) {
+        homeTimeouts = match.gmltimeouts !== undefined ? Number(match.gmltimeouts) : 3;
       }
-      setText(item[0], item[1]);
-      previousScores[item[2]] = item[1];
-    });
-  }
+    }
+    if (!isFinite(awayTimeouts)) awayTimeouts = 3;
+    if (!isFinite(homeTimeouts)) homeTimeouts = 3;
 
-  // Hook the exact scoreboard script called by the controller every frame.
-  // Keep the FOX UI as an HTML/CSS overlay; do not use GameMaker drawing APIs.
-  if (typeof originalScoreboard === "function") {
-    window.gml_Script_s_draw_scoreboard = function (inst, other) {
-      var practice = false;
-      try {
-        if (typeof window.yyInst === "function" && typeof window.YYASSET_REF === "function") {
-          var settings = window.yyInst(inst, other, window.YYASSET_REF(0x00000062));
-          practice = !!(settings && settings.gmlgamepractice);
-        }
-      } catch (_) {}
+    var possession = Number(inst.gmlpossession) || 0;
 
-      if (practice) {
-        if (overlay) overlay.style.display = "none";
-        return originalScoreboard.apply(this, arguments);
+    return {
+      away: {
+        name: awayName,
+        mascot: awayMark,
+        rank: asOptionalText(teamValue(awayTeam, "rank", "")),
+        record: asOptionalText(teamValue(awayTeam, "record", "")),
+        score: String(awayScore),
+        color: colorFromTeam(awayTeam, "#8c2d2e"),
+        logo: logoFromTeam(awayTeam),
+        possession: possession === 0,
+        timeouts: Math.max(0, Math.min(3, Math.round(awayTimeouts)))
+      },
+      home: {
+        name: homeName,
+        mascot: homeMark,
+        rank: asOptionalText(teamValue(homeTeam, "rank", "")),
+        record: asOptionalText(teamValue(homeTeam, "record", "")),
+        score: String(homeScore),
+        color: colorFromTeam(homeTeam, "#1e2e45"),
+        logo: logoFromTeam(homeTeam),
+        possession: possession === 1,
+        timeouts: Math.max(0, Math.min(3, Math.round(homeTimeouts)))
+      },
+      game: {
+        quarter: quarterText(inst),
+        clock: clock,
+        playClock: "",
+        downDistance: downDistance
       }
-
-      try {
-        updateFromController(inst, other);
-      } catch (e) {
-        console.warn(TAG, "Overlay update failed:", e);
-      }
-      // Intentionally do not call the stock scoreboard in normal games.
     };
-    console.log(TAG, "HTML/CSS overlay hooked to s_draw_scoreboard.");
-  } else {
-    console.error(TAG, "Could not find s_draw_scoreboard; the overlay cannot receive live game state.");
   }
+
+  function snapshotState(inst, other) {
+    var state = buildState(inst, other);
+    if (!state) return null;
+    var signature;
+    try {
+      signature = JSON.stringify(state);
+    } catch (_) {
+      return null;
+    }
+    if (signature !== lastSnapshot) {
+      lastSnapshot = signature;
+      sendState(state);
+    }
+    return state;
+  }
+
+  function hideOverlay() {
+    if (frame) frame.style.display = "none";
+  }
+
+  function showOverlay() {
+    if (frame) frame.style.display = "block";
+  }
+
+  function scoreboardHook(inst, other) {
+    lastActiveAt = Date.now();
+    var settings = getSettings(inst, other);
+    var practice = !!(settings && settings.gmlgamepractice);
+    var hideUi = false;
+    try {
+      hideUi = typeof global !== "undefined" && !!global.gmldebug_aa_hide_ui;
+    } catch (_) {}
+
+    if (practice || hideUi) {
+      hideOverlay();
+      if (typeof originalScoreboard === "function") return originalScoreboard.apply(this, arguments);
+      return;
+    }
+
+    if (!inst || !inst.gmlteam) {
+      hideOverlay();
+      if (typeof originalScoreboard === "function") return originalScoreboard.apply(this, arguments);
+      return;
+    }
+
+    ensureOverlay();
+    showOverlay();
+    snapshotState(inst, other);
+
+    // Keep the stock scoreboard visible only while the original design is still loading.
+    if (!frameReady && typeof originalScoreboard === "function") return originalScoreboard.apply(this, arguments);
+  }
+
+  if (typeof originalScoreboard === "function") {
+    window.gml_Script_s_draw_scoreboard = scoreboardHook;
+    console.log(TAG, "Hooked s_draw_scoreboard; preserving the uploaded FOX design as a DOM overlay.");
+  } else {
+    logError("Could not find gml_Script_s_draw_scoreboard; scorebug not installed.");
+  }
+
+  // The hook runs every frame only during gameplay; hide the overlay after play stops.
+  window.setInterval(function () {
+    if (frame && lastActiveAt && Date.now() - lastActiveAt > 1800) hideOverlay();
+  }, 500);
 })();
