@@ -44,18 +44,17 @@
         if (!propMatch) throw new Error("Could not locate FOX component input metadata.");
         var decoded = propMatch[1].replace(/&quot;/g, '"').replace(/&amp;/g, '&');
         var schema = JSON.parse(decoded);
-        var liveInputs = {
-          gameQuarter: "2ND",
-          gameClock: "1:39",
-          gamePlayClock: "16",
-          gameDownDistance: "1ST & GOAL",
-          awayRecordText: "4-0",
-          homeRecordText: "3-1",
-          awayLogoUrl: "",
-          homeLogoUrl: ""
-        };
-        Object.keys(liveInputs).forEach(function (key) {
-          if (!schema[key]) schema[key] = { editor: "text", default: liveInputs[key], tsType: "string", section: "Live game" };
+        // Never let the exported demo values appear while live game data is loading.
+        var liveInputs = [
+          "gameQuarter", "gameClock", "gamePlayClock", "gameDownDistance",
+          "awayRecordText", "homeRecordText", "awayLogoUrl", "homeLogoUrl"
+        ];
+        liveInputs.forEach(function (key) {
+          if (!schema[key]) {
+            schema[key] = { editor: "text", default: "", tsType: "string", section: "Live game" };
+          } else {
+            schema[key].default = "";
+          }
         });
         var encoded = JSON.stringify(schema).replace(/&/g, "&amp;").replace(/"/g, "&quot;");
         source = source.replace(propMatch[0], 'data-props="' + encoded + '"');
@@ -165,6 +164,8 @@
         awayLogoUrl: state.away.logo || "",
         homeLogoUrl: state.home.logo || ""
       });
+      // Reveal the scorebug only after real game data replaces every demo/default value.
+      frame.style.visibility = "visible";
     } catch (error) {
       logError("Could not update the FOX component inputs.", error);
     }
@@ -214,7 +215,7 @@
       // Ignore the iframe's initial about:blank load; the original source has not arrived yet.
       if (!sourceAssigned) return;
       frameLoading = false;
-      frame.style.visibility = "visible";
+      // Keep the iframe hidden until the live game state has been applied.
       window.__foxCfbLayoutFrame();
       // The document load precedes the Design Component boot. The
       // __dc_booted message is the normal readiness signal; this covers a fast boot.
