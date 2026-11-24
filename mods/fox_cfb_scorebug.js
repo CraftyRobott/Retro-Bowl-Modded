@@ -141,7 +141,7 @@
       // Use the FOX scorebug's native Design Component input mechanism.
       // One prop update keeps React rendering and the scorebug's own observers
       // (including the score-pop animation) in control of the display.
-      child.__dcSetProps(rootName, {
+      var componentProps = {
         awayNameText: state.away.name,
         homeNameText: state.home.name,
         awayWordmark: state.away.mascot || "",
@@ -163,7 +163,34 @@
         homeRecordText: state.home.record || "",
         awayLogoUrl: state.away.logo || "",
         homeLogoUrl: state.home.logo || ""
+      };
+
+      // Trace the exact value crossing the mod-to-FOX component boundary.
+      console.log(TAG, "Sending FOX component inputs:", {
+        rootName: rootName,
+        gameDownDistance: componentProps.gameDownDistance,
+        gameQuarter: componentProps.gameQuarter,
+        gameClock: componentProps.gameClock
       });
+      child.__dcSetProps(rootName, componentProps);
+
+      // Read the rendered iframe text after the component has had a chance to update.
+      window.setTimeout(function () {
+        try {
+          var renderedText = child.document && child.document.body
+            ? String(child.document.body.innerText || child.document.body.textContent || "").replace(/\\s+/g, " ").trim()
+            : "[FOX iframe document unavailable]";
+          console.log(TAG, "FOX rendered text after input update:", {
+            sentDownDistance: componentProps.gameDownDistance,
+            renderedContainsSentValue: !!componentProps.gameDownDistance &&
+              renderedText.indexOf(String(componentProps.gameDownDistance)) !== -1,
+            renderedText: renderedText.slice(0, 1200)
+          });
+        } catch (readError) {
+          console.warn(TAG, "Could not inspect rendered FOX text:", readError);
+        }
+      }, 50);
+
       // Reveal the scorebug only after real game data replaces every demo/default value.
       frame.style.visibility = "visible";
     } catch (error) {
