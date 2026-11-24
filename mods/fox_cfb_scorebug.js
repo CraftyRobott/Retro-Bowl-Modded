@@ -129,6 +129,23 @@
     return attempt(0);
   }
 
+  function updateNativeDownDistance(doc, value) {
+    if (!doc || value === undefined || value === null) return false;
+
+    var text = String(value).trim();
+    var match = text.match(/^([1-4])(ST|ND|RD|TH)\\s*&\\s*(.+)$/i);
+    if (!match) return false;
+
+    var element = doc.getElementById("downDistance");
+    if (!element || !element.children || element.children.length < 3) return false;
+
+    // Update the original FOX template's existing spans; do not rebuild its markup.
+    element.children[0].textContent = match[1];
+    element.children[1].textContent = match[2].toUpperCase();
+    element.children[2].textContent = "\\u00a0& " + match[3].toUpperCase();
+    return true;
+  }
+
   function sendState(state) {
     pendingState = state;
     if (!frame || !frameReady || !state) return;
@@ -174,9 +191,15 @@
       });
       child.__dcSetProps(rootName, componentProps);
 
+      // The exported FOX binding does not update this field reliably, so
+      // synchronize the original three-span down-and-distance element directly.
+      updateNativeDownDistance(child.document, componentProps.gameDownDistance);
+
       // Read the rendered iframe text after the component has had a chance to update.
       window.setTimeout(function () {
         try {
+          // Reapply after React's render in case it restored the demo text.
+          updateNativeDownDistance(child.document, componentProps.gameDownDistance);
           var renderedText = child.document && child.document.body
             ? String(child.document.body.innerText || child.document.body.textContent || "").replace(/\\s+/g, " ").trim()
             : "[FOX iframe document unavailable]";
