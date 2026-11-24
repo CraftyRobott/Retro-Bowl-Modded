@@ -182,7 +182,8 @@
   function updateNativeQuarter(doc, value) {
     if (!doc || value === undefined || value === null) return false;
 
-    var text = String(value).trim();
+    // Keep the FOX period label compact: "1st Qtr" becomes "1st".
+    var text = String(value).trim().replace(/\s*Qtr$/i, "");
     if (!text) return false;
     latestQuarterText = text;
 
