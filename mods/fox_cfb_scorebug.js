@@ -152,7 +152,9 @@
   }
 
   function updateFromController(inst, other) {
-    if (!inst || !inst.gmlteam_name) return;
+    // Retro Bowl College stores team abbreviations on each team map (team[].tla);
+    // it does not expose a controller-level gmlteam_name array in this build.
+    if (!inst || !inst.gmlteam) return;
     var settings = null;
     try {
       if (typeof window.yyInst === "function" && typeof window.YYASSET_REF === "function") settings = window.yyInst(inst, other, window.YYASSET_REF(0x00000062));
