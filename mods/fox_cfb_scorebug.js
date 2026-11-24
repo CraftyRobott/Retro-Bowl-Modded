@@ -116,7 +116,7 @@
       frameReady = true;
       frameLoading = false;
       frame.style.visibility = "visible";
-      layoutFrame();
+      window.__foxCfbLayoutFrame();
       if (pendingState) sendState(pendingState);
       console.log(TAG, "Original HTML/CSS scorebug loaded.");
     };
@@ -142,9 +142,9 @@
       logError("Could not load the preserved FOX scorebug source. The stock scoreboard will remain active.", error);
     });
 
-    layoutFrame();
+    window.__foxCfbLayoutFrame();
     if (!resizeHandler) {
-      resizeHandler = layoutFrame;
+      resizeHandler = window.__foxCfbLayoutFrame;
       window.addEventListener("resize", resizeHandler, { passive: true });
       window.addEventListener("orientationchange", resizeHandler, { passive: true });
     }
