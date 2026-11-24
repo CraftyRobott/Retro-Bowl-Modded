@@ -470,17 +470,45 @@
     return asOptionalText(teamValue(team, "record", ""));
   }
 
+  // Rankings are season data, not live-play data. Cache the parsed value
+  // for each team map so transient in-game values cannot make the labels flicker.
+  var teamRankCache = typeof WeakMap === "function" ? new WeakMap() : null;
+  var teamRankFallbackCache = [];
+
   function rankFromTeam(team, inst, other) {
+    if (!team) return "";
+
+    if (teamRankCache && (typeof team === "object" || typeof team === "function")) {
+      if (teamRankCache.has(team)) return teamRankCache.get(team);
+    } else {
+      for (var cachedIndex = 0; cachedIndex < teamRankFallbackCache.length; cachedIndex++) {
+        if (teamRankFallbackCache[cachedIndex].team === team) {
+          return teamRankFallbackCache[cachedIndex].rank;
+        }
+      }
+    }
+
+    var result = "";
     try {
       if (typeof window.gml_Script_s_get_ranking_pos_data === "function") {
         var rankData = window.gml_Script_s_get_ranking_pos_data(inst, other, team);
         var rank = Number(rankData && rankData.gmlpos);
-        if (isFinite(rank) && rank > 0 && rank <= 99) return String(rank);
+        if (isFinite(rank) && rank > 0 && rank <= 99) result = String(rank);
       }
     } catch (_) {}
-    var encoded = Number(teamValue(team, "ranking_pos", 0)) || 0;
-    var fallbackRank = Math.floor(encoded);
-    return fallbackRank > 0 && fallbackRank <= 99 ? String(fallbackRank) : "";
+
+    if (!result) {
+      var encoded = Number(teamValue(team, "ranking_pos", 0)) || 0;
+      var fallbackRank = Math.floor(encoded);
+      if (fallbackRank > 0 && fallbackRank <= 99) result = String(fallbackRank);
+    }
+
+    if (teamRankCache && (typeof team === "object" || typeof team === "function")) {
+      teamRankCache.set(team, result);
+    } else {
+      teamRankFallbackCache.push({ team: team, rank: result });
+    }
+    return result;
   }
 
   function gameNumber(inst, key, fallback) {
