@@ -30,6 +30,19 @@
       "https://raw.githubusercontent.com/CraftyRobott/Retro-Bowl-Modded/main/mods/fox_cfb_scorebug_source.html"
     ];
 
+    function makeTransparent(html) {
+      // Preserve the uploaded HTML/CSS/React design; disable only its chroma-key canvas.
+      var match = html.match(/(<script type="__bundler\\/template"[^>]*>)([\\s\\S]*?)(<\\/script>)/);
+      if (!match) throw new Error("Could not locate original FOX scorebug template.");
+      var template = JSON.parse(match[2]);
+      template = template.replace(
+        'background: (p.greenScreen ?? true) ? (p.keyColor ?? "#00b140") : "#1b2417"',
+        'background: "transparent"'
+      );
+      return html.slice(0, match.index) + match[1] + JSON.stringify(template) + match[3] +
+        html.slice(match.index + match[0].length);
+    }
+
     function attempt(index) {
       if (index >= urls.length) return Promise.reject(new Error("No scorebug source URL could be loaded."));
       return fetch(urls[index], { cache: "no-cache" }).then(function (response) {
@@ -39,26 +52,15 @@
         if (html.indexOf("data-dc-script") === -1 || html.indexOf("data-cfb27-scorebug") === -1) {
           throw new Error("The fetched file is not the standalone FOX scorebug source.");
         }
-        console.log(TAG, "Loaded scorebug source from", urls[index]);
+        html = makeTransparent(html);
+        console.log(TAG, "Loaded original FOX design with transparent canvas from", urls[index]);
         return html;
       }).catch(function (error) {
         if (index + 1 < urls.length) return attempt(index + 1);
         throw error;
       });
     }
-
     return attempt(0);
-  }
-
-  function layoutFrame() {
-    if (!frame) return;
-    var vw = Math.max(1, window.innerWidth || document.documentElement.clientWidth || 1);
-    var scale = Math.min(1, vw / 1920);
-    // The source canvas is 2315x534; its actual scoreboard is 1920x400 at (184,122).
-    // Crop only the transparent canvas margins, not any part of the original artwork.
-    frame.style.left = (vw / 2 - 1144 * scale) + "px";
-    frame.style.top = (-118 * scale) + "px";
-    frame.style.transform = "scale(" + scale + ")";
   }
 
   function sendState(state) {
