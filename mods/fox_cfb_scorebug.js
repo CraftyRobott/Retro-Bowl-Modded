@@ -77,7 +77,7 @@
 
         try {
             window.draw_set_alpha(1);
-            window.draw_set_font(window.global.gmlfnt_flex);
+            window.draw_set_font(window.global.gmlfnt_small_flex);
             window.draw_set_halign(1);
             window.draw_set_valign(1);
 
@@ -118,7 +118,6 @@
             var clockText = inst.gmlcollege_overtime ? "" : window.gml_Script_s_get_string_time(inst, other, inst.gmlminutes, inst.gmlseconds);
             drawText(inst, other, left + 293, top + 13, quarterText + (clockText ? "  " + clockText : ""));
 
-            window.draw_set_font(window.global.gmlfnt_small_flex);
             var downText = "";
             if (Number(inst.gmldown) >= 1 && Number(inst.gmldown) <= 4 && typeof window.gml_Script_s_get_string_downand === "function") {
                 downText = window.gml_Script_s_get_string_downand(inst, other);
@@ -135,7 +134,14 @@
 
     function replacement(inst, other) {
         try {
-            if (inst && (inst.gmlgamepractice || (window.global && window.global.gmldebug_aa_hide_ui))) {
+            var practice = !!(inst && inst.gmlgamepractice);
+            try {
+                if (typeof window.yyInst === "function" && typeof window.YYASSET_REF === "function") {
+                    var settings = window.yyInst(inst, other, window.YYASSET_REF(0x00000062));
+                    practice = !!(settings && settings.gmlgamepractice);
+                }
+            } catch (_) {}
+            if (practice || (window.global && window.global.gmldebug_aa_hide_ui)) {
                 if (typeof originalDraw === "function") return originalDraw(inst, other);
             }
             drawFoxScorebug(inst, other);
