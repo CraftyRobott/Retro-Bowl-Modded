@@ -32,7 +32,7 @@
 
     function makeTransparent(html) {
       // Preserve the uploaded HTML/CSS/React design; disable only its chroma-key canvas.
-      var match = html.match(/(<script type="__bundler\\/template"[^>]*>)([\\s\\S]*?)(<\\/script>)/);
+      var match = html.match(/(<script type="__bundler\/template"[^>]*>)([\s\S]*?)(<\/script>)/);
       if (!match) throw new Error("Could not locate original FOX scorebug template.");
       var template = JSON.parse(match[2]);
       template = template.replace(
