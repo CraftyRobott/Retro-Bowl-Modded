@@ -40,7 +40,29 @@
       // the compiled template, not just from one exact formatting of the expression.
       var greenMatches = (template.match(/#00b140/gi) || []).length;
       template = template.replace(/#00b140/gi, "transparent");
-      console.log(TAG, "Removed", greenMatches, "chroma-key green references from the FOX template.");
+      // Force the generated canvas to transparent even if editor defaults enable chroma key.
+      template = template.replace(/background:\s*\(p\.greenScreen\s*\?\?\s*true\)\s*\?\s*\(p\.keyColor\s*\?\?\s*"[^"]*"\)\s*:\s*"[^"]*"/g, 'background: "transparent"');
+      // The standalone FOX export has no listener for the host's game-data messages.
+      var bridgeScript = [
+        '<script id="fox-cfb-live-data">(function(){',
+        'function el(id){return document.getElementById(id);}',
+        'function put(id,value){var node=el(id);if(!node||value===undefined||value===null)return;node.textContent=String(value);}',
+        'function image(id,value){var node=el(id);if(!node)return;if(typeof value==="string"&&value){node.src=value;node.style.setProperty("opacity","1","important");}else{node.removeAttribute("src");node.style.setProperty("opacity","0","important");}}',
+        'function color(id,value){var node=el(id);if(!node||typeof value!=="string"||!/^#[0-9a-f]{6}$/i.test(value))return;node.style.setProperty("background-color",value,"important");node.style.setProperty("--team-color",value);}',
+        'function possession(id,on){var node=el(id);if(node)node.style.setProperty("display",on?"block":"none","important");}',
+        'function timeouts(id,count){var node=el(id);if(!node)return;var n=Math.max(0,Math.min(3,Number(count)||0));Array.prototype.forEach.call(node.children,function(mark,i){mark.style.setProperty("opacity",i<n?"1":"0.18","important");});}',
+        'window.addEventListener("message",function(event){var d=event.data;if(!d||typeof d!=="object"||!d.away||!d.home||!d.game)return;var a=d.away,h=d.home,g=d.game;',
+        'put("awayName",a.name);put("awayScore",a.score);put("awayRank",a.rank?("#"+String(a.rank).replace(/^#/,"")):"");put("awayMascot",a.mascot);put("awayMascot2",a.mascot2);put("awayRecord",a.record);',
+        'put("homeName",h.name);put("homeScore",h.score);put("homeRank",h.rank?("#"+String(h.rank).replace(/^#/,"")):"");put("homeMascot",h.mascot);put("homeMascot2",h.mascot2);put("homeRecord",h.record);',
+        'put("quarter",g.quarter);put("clock",g.clock);put("playClock",g.playClock);put("downDistance",g.downDistance);',
+        'image("awayLogo",a.logo);image("homeLogo",h.logo);color("awayPanel",a.color);color("homePanel",h.color);',
+        'possession("awayPossession",!!a.possession);possession("homePossession",!!h.possession);timeouts("awayTimeoutMarks",a.timeouts);timeouts("homeTimeoutMarks",h.timeouts);',
+        '});})();</script>'
+      ].join("");
+      template = template.replace(/<\/head>/i, bridgeScript + "</head>");
+      var transparentDocStyle = '<style id="fox-cfb-live-transparent">html,body,x-dc{background:transparent!important;background-color:transparent!important}body>div{background-color:transparent!important}</style>';
+      template = template.replace(/<head([^>]*)>/i, '<head$1>' + transparentDocStyle);
+      console.log(TAG, "Removed", greenMatches, "chroma-key green references and installed live-data bridge.");
       var patched = html.slice(0, match.index) + match[1] + JSON.stringify(template).replace(/</g, "\\u003C") + match[3] +
         html.slice(match.index + match[0].length);
       // The original chroma-key adapter paints the document green as well.
