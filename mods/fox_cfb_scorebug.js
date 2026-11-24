@@ -82,7 +82,9 @@
     }
   }
 
-  function layoutFrame() {
+  // Expose the layout callback on window so the game wrapper's evaluator and
+  // resize callbacks always resolve the same function scope.
+  window.__foxCfbLayoutFrame = function () {
     if (!frame) return;
     var vw = Math.max(1, window.innerWidth || document.documentElement.clientWidth || 1);
     var vh = Math.max(1, window.innerHeight || document.documentElement.clientHeight || 1);
@@ -94,7 +96,7 @@
     frame.style.left = ((vw - width) / 2) + "px";
     frame.style.top = (vh - height - Math.max(8, vh * 0.018)) + "px";
     frame.style.transform = "scale(" + scale + ")";
-  }
+  };
 
   function ensureOverlay() {
     if (frame && document.body.contains(frame)) return frame;
