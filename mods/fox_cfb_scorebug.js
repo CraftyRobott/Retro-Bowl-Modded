@@ -1,7 +1,8 @@
 // @name FOX CFB Broadcast Scorebug
 // @description Replaces Retro Bowl College's in-game score strip with a responsive FOX-inspired broadcast scoreboard.
 // @category presentation
-// Install: engine/mods/fox_cfb_scorebug.js
+// Repository source: mods/fox_cfb_scorebug.js
+// The offline installer copies selected public mods into the game's engine/mods/ folder.
 (function () {
   "use strict";
 
