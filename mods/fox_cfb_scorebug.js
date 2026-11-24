@@ -493,14 +493,14 @@
       if (typeof window.gml_Script_s_get_ranking_pos_data === "function") {
         var rankData = window.gml_Script_s_get_ranking_pos_data(inst, other, team);
         var rank = Number(rankData && rankData.gmlpos);
-        if (isFinite(rank) && rank > 0 && rank <= 99) result = String(rank);
+        if (isFinite(rank) && rank > 0 && rank <= 25) result = String(rank);
       }
     } catch (_) {}
 
     if (!result) {
       var encoded = Number(teamValue(team, "ranking_pos", 0)) || 0;
       var fallbackRank = Math.floor(encoded);
-      if (fallbackRank > 0 && fallbackRank <= 99) result = String(fallbackRank);
+      if (fallbackRank > 0 && fallbackRank <= 25) result = String(fallbackRank);
     }
 
     if (teamRankCache && (typeof team === "object" || typeof team === "function")) {
