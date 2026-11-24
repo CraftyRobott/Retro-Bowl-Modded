@@ -164,7 +164,7 @@
     // Normalize whitespace because the source component uses non-breaking
     // spaces when it rebuilds the ordinal and yardage spans.
     var normalize = function (value) {
-      return String(value || "").replace(/\\s+/g, " ").trim().toUpperCase();
+      return String(value || "").replace(/\s+/g, " ").trim().toUpperCase();
     };
     if (normalize(element.textContent) !== normalize(text)) {
       element.textContent = text;
