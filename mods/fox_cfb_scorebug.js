@@ -129,17 +129,46 @@
     return attempt(0);
   }
 
+  var downDistanceObserver = null;
+  var observedDownDistanceDocument = null;
+  var latestDownDistanceText = "";
+
   function updateNativeDownDistance(doc, value) {
     if (!doc || value === undefined || value === null) return false;
+
+    var text = String(value).trim();
+    if (!text) return false;
+    latestDownDistanceText = text;
+
+    // The exported Design Component can asynchronously restore its demo
+    // binding after __dcSetProps(). Watch the iframe DOM and re-apply the
+    // current live value whenever that renderer touches the down/distance
+    // field. This leaves the rest of the FOX component's React updates alone.
+    if (doc !== observedDownDistanceDocument && doc.body &&
+        typeof doc.defaultView.MutationObserver === "function") {
+      if (downDistanceObserver) downDistanceObserver.disconnect();
+      observedDownDistanceDocument = doc;
+      downDistanceObserver = new doc.defaultView.MutationObserver(function () {
+        if (latestDownDistanceText) updateNativeDownDistance(doc, latestDownDistanceText);
+      });
+      downDistanceObserver.observe(doc.body, {
+        subtree: true,
+        childList: true,
+        characterData: true
+      });
+    }
 
     var element = doc.getElementById("downDistance");
     if (!element) return false;
 
-    // The live template replaces the original demo spans with one dynamic
-    // text node, so update the element itself rather than expecting those spans.
-    var text = String(value).trim();
-    if (!text) return false;
-    element.textContent = text;
+    // Normalize whitespace because the source component uses non-breaking
+    // spaces when it rebuilds the ordinal and yardage spans.
+    var normalize = function (value) {
+      return String(value || "").replace(/\\s+/g, " ").trim().toUpperCase();
+    };
+    if (normalize(element.textContent) !== normalize(text)) {
+      element.textContent = text;
+    }
     return true;
   }
 
