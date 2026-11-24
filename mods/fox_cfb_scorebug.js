@@ -97,7 +97,7 @@
             drawText(inst, other, left + 24, top + 17, "FOX");
             window.draw_set_font(window.global.gmlfnt_small_flex);
             drawText(inst, other, left + 24, top + 29, "CFB");
-            window.draw_set_font(window.global.gmlfnt_flex);
+            window.draw_set_font(window.global.gmlfnt_small_flex);
 
             window.draw_set_halign(0);
             drawText(inst, other, left + 57, top + 17, away);
