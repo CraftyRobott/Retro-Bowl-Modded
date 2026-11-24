@@ -44,7 +44,11 @@
       // The original chroma-key adapter paints the document green as well.
       // Override only that host canvas background; the FOX artwork is untouched.
       var transparentStyle = '<style id="fox-overlay-transparent">html,body{background:transparent!important;background-color:transparent!important;margin:0!important;padding:0!important;overflow:hidden!important}</style>';
-      if (patched.indexOf("</head>") !== -1) patched = patched.replace("</head>", transparentStyle + "</head>");
+      // The bundled asset manifest in this export wraps UUID paths in quotes.
+      // The browser percent-encodes those quotes as %22, producing invalid image URLs.
+      // Normalize only image URL assignments; leave the original artwork and layout intact.
+      var imageUrlFix = '<script id="fox-overlay-image-url-fix">(function(){function clean(v){return typeof v==="string"?v.replace(/%22/gi,""):v;}var p=HTMLImageElement.prototype;var nativeSet=p.setAttribute;p.setAttribute=function(n,v){return nativeSet.call(this,n,n&&String(n).toLowerCase()==="src"?clean(v):v);};var d=Object.getOwnPropertyDescriptor(p,"src");if(d&&d.set&&d.get){Object.defineProperty(p,"src",{configurable:d.configurable,enumerable:d.enumerable,get:function(){return d.get.call(this);},set:function(v){return d.set.call(this,clean(v));}});}})();</script>';
+      if (patched.indexOf("</head>") !== -1) patched = patched.replace("</head>", transparentStyle + imageUrlFix + "</head>");
       return patched;
     }
 
