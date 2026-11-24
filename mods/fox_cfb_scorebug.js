@@ -36,6 +36,54 @@
       var match = html.match(/(<script type="__bundler\/template"[^>]*>)([\s\S]*?)(<\/script>)/);
       if (!match) throw new Error("Could not locate original FOX scorebug template.");
       var template = JSON.parse(match[2]);
+
+      // Extend the scorebug's native Design Component inputs with the live
+      // game fields that were static demo text in the original export.
+      function addLiveInputs(source) {
+        var propMatch = source.match(/data-props="([^"]*)"/);
+        if (!propMatch) throw new Error("Could not locate FOX component input metadata.");
+        var decoded = propMatch[1].replace(/&quot;/g, '"').replace(/&amp;/g, '&');
+        var schema = JSON.parse(decoded);
+        var liveInputs = {
+          gameQuarter: "2ND",
+          gameClock: "1:39",
+          gamePlayClock: "16",
+          gameDownDistance: "1ST & GOAL",
+          awayRecordText: "4-0",
+          homeRecordText: "3-1",
+          awayLogoUrl: "",
+          homeLogoUrl: ""
+        };
+        Object.keys(liveInputs).forEach(function (key) {
+          if (!schema[key]) schema[key] = { editor: "text", default: liveInputs[key], tsType: "string", section: "Live game" };
+        });
+        var encoded = JSON.stringify(schema).replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+        source = source.replace(propMatch[0], 'data-props="' + encoded + '"');
+
+        function replaceOnce(before, after, label) {
+          if (source.indexOf(before) === -1) throw new Error("Could not bind FOX input: " + label);
+          source = source.replace(before, after);
+        }
+        replaceOnce('style="{{ cellQtr }}"><span>2</span><span style="{{ infoSuffix }}">ND</span></div>',
+          'style="{{ cellQtr }}">{{ gameQuarter }}</div>', "quarter");
+        replaceOnce('style="{{ cellClock }}">1:39</div>',
+          'style="{{ cellClock }}">{{ gameClock }}</div>', "game clock");
+        replaceOnce('style="{{ cellPlay }}">16</div>',
+          'style="{{ cellPlay }}">{{ gamePlayClock }}</div>', "play clock");
+        replaceOnce('style="{{ cellDown }}"><span>1</span><span style="{{ infoSuffix }}">ST</span><span>&nbsp;&amp;&nbsp;GOAL</span></div>',
+          'style="{{ cellDown }}">{{ gameDownDistance }}</div>', "down and distance");
+        replaceOnce('style="{{ recHome }}">4-0</div>',
+          'style="{{ recHome }}">{{ awayRecordText }}</div>', "away record");
+        replaceOnce('style="{{ recAway }}">3-1</div>',
+          'style="{{ recAway }}">{{ homeRecordText }}</div>', "home record");
+        replaceOnce('data-bind="awayLogo" alt="" style=',
+          'data-bind="awayLogo" src="{{ awayLogoUrl }}" alt="" style=', "away logo");
+        replaceOnce('data-bind="homeLogo" alt="" style=',
+          'data-bind="homeLogo" src="{{ homeLogoUrl }}" alt="" style=', "home logo");
+        return source;
+      }
+      template = addLiveInputs(template);
+
       // The source can use the chroma key in more than one generated style
       // (the canvas and the document adapter). Remove the key color throughout
       // the compiled template, not just from one exact formatting of the expression.
@@ -86,70 +134,53 @@
     pendingState = state;
     if (!frame || !frameReady || !state) return;
     try {
-      var doc = frame.contentDocument;
-      if (!doc || !doc.documentElement) return;
-      if (!doc.getElementById("fox-cfb-live-transparent-host")) {
-        var style = doc.createElement("style");
-        style.id = "fox-cfb-live-transparent-host";
-        style.textContent = 'html,body,x-dc,x-dc>div,body>div{background:transparent!important;background-color:transparent!important}*[style*="#00b140"]{background:transparent!important;background-color:transparent!important}';
-        (doc.head || doc.documentElement).appendChild(style);
-      }
-      function put(id, value) {
-        var node = doc.getElementById(id);
-        if (!node || value === undefined || value === null) return;
-        node.textContent = String(value);
-      }
-      function setImage(id, value) {
-        var node = doc.getElementById(id);
-        if (!node) return;
-        if (typeof value === "string" && value) {
-          node.src = value;
-          node.style.setProperty("opacity", "1", "important");
-        } else {
-          node.removeAttribute("src");
-          node.style.setProperty("opacity", "0", "important");
-        }
-      }
-      function setTimeouts(id, count) {
-        var node = doc.getElementById(id);
-        if (!node) return;
-        var active = Math.max(0, Math.min(3, Number(count) || 0));
-        Array.prototype.forEach.call(node.children, function (mark, i) {
-          mark.style.setProperty("opacity", i < active ? "1" : "0.18", "important");
-        });
-      }
-      put("awayName", state.away.name);
-      put("awayScore", state.away.score);
-      put("awayRank", state.away.rank ? "#" + String(state.away.rank).replace(/^#/, "") : "");
-      put("awayMascot", state.away.mascot);
-      put("awayMascot2", state.away.mascot2);
-      put("awayRecord", state.away.record);
-      put("homeName", state.home.name);
-      put("homeScore", state.home.score);
-      put("homeRank", state.home.rank ? "#" + String(state.home.rank).replace(/^#/, "") : "");
-      put("homeMascot", state.home.mascot);
-      put("homeMascot2", state.home.mascot2);
-      put("homeRecord", state.home.record);
-      put("quarter", state.game.quarter);
-      put("clock", state.game.clock);
-      put("playClock", state.game.playClock);
-      put("downDistance", state.game.downDistance);
-      setImage("awayLogo", state.away.logo);
-      setImage("homeLogo", state.home.logo);
-      var awayPanel = doc.getElementById("awayPanel");
-      var homePanel = doc.getElementById("homePanel");
-      if (awayPanel && state.away.color) awayPanel.style.setProperty("background-color", state.away.color, "important");
-      if (homePanel && state.home.color) homePanel.style.setProperty("background-color", state.home.color, "important");
-      var awayPoss = doc.getElementById("awayPossession");
-      var homePoss = doc.getElementById("homePossession");
-      if (awayPoss) awayPoss.style.setProperty("display", state.away.possession ? "block" : "none", "important");
-      if (homePoss) homePoss.style.setProperty("display", state.home.possession ? "block" : "none", "important");
-      setTimeouts("awayTimeoutMarks", state.away.timeouts);
-      setTimeouts("homeTimeoutMarks", state.home.timeouts);
+      var child = frame.contentWindow;
+      if (!child || typeof child.__dcSetProps !== "function") return;
+      var rootName = typeof child.__dcRootName === "function" ? child.__dcRootName() : frameRootName;
+      if (!rootName) rootName = "Root";
+
+      // Use the FOX scorebug's native Design Component input mechanism.
+      // One prop update keeps React rendering and the scorebug's own observers
+      // (including the score-pop animation) in control of the display.
+      child.__dcSetProps(rootName, {
+        awayNameText: state.away.name,
+        homeNameText: state.home.name,
+        awayWordmark: state.away.mascot || "",
+        homeWordmark: state.home.mascot || "",
+        scoreLeftText: String(state.away.score),
+        scoreRightText: String(state.home.score),
+        rankLeftText: state.away.rank ? "#" + String(state.away.rank).replace(/^#/, "") : " ",
+        rankRightText: state.home.rank ? "#" + String(state.home.rank).replace(/^#/, "") : " ",
+        awayColor: state.away.color || "#8c2d2e",
+        homeColor: state.home.color || "#1e2e45",
+        awayTimeouts: state.away.timeouts,
+        homeTimeouts: state.home.timeouts,
+        possession: state.away.possession ? "left" : state.home.possession ? "right" : "none",
+        gameQuarter: state.game.quarter || "",
+        gameClock: state.game.clock || "",
+        gamePlayClock: state.game.playClock || "",
+        gameDownDistance: state.game.downDistance || "",
+        awayRecordText: state.away.record || "",
+        homeRecordText: state.home.record || "",
+        awayLogoUrl: state.away.logo || "",
+        homeLogoUrl: state.home.logo || ""
+      });
     } catch (error) {
-      logError("Could not apply live data directly to the FOX document.", error);
+      logError("Could not update the FOX component inputs.", error);
     }
   }
+
+  function onFrameMessage(event) {
+    if (!frame || event.source !== frame.contentWindow) return;
+    var data = event.data;
+    if (!data || data.type !== "__dc_booted") return;
+    frameReady = true;
+    frameRootName = data.rootName || "Root";
+    if (pendingState) sendState(pendingState);
+    console.log(TAG, "FOX component input system is ready:", frameRootName);
+  }
+
+  window.addEventListener("message", onFrameMessage);
 
   // Expose the layout callback on window so the game wrapper's evaluator and
   // resize callbacks always resolve the same function scope.
@@ -182,12 +213,20 @@
     frame.onload = function () {
       // Ignore the iframe's initial about:blank load; the original source has not arrived yet.
       if (!sourceAssigned) return;
-      frameReady = true;
       frameLoading = false;
       frame.style.visibility = "visible";
       window.__foxCfbLayoutFrame();
-      if (pendingState) sendState(pendingState);
-      console.log(TAG, "Original HTML/CSS scorebug loaded.");
+      // The document load precedes the Design Component boot. The
+      // __dc_booted message is the normal readiness signal; this covers a fast boot.
+      try {
+        var child = frame.contentWindow;
+        if (child && typeof child.__dcSetProps === "function") {
+          frameReady = true;
+          frameRootName = typeof child.__dcRootName === "function" ? child.__dcRootName() : "Root";
+          if (pendingState) sendState(pendingState);
+        }
+      } catch (_) {}
+      console.log(TAG, "Original HTML/CSS scorebug document loaded.");
     };
     frame.onerror = function (error) {
       frameReady = false;
@@ -482,12 +521,6 @@
   } else {
     logError("Could not find gml_Script_s_draw_scoreboard; scorebug not installed.");
   }
-
-  // The FOX unpacker asynchronously replaces the iframe document after its load event.
-  // Reapply state until the final rendered document and its bound nodes are present.
-  window.setInterval(function () {
-    if (frameReady && pendingState) sendState(pendingState);
-  }, 250);
 
   // The hook runs every frame only during gameplay; hide the overlay after play stops.
   window.setInterval(function () {
