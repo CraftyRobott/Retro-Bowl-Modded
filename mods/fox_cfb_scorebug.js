@@ -455,9 +455,31 @@
     return fallback;
   }
 
-  function logoFromTeam(team) {
+  // Team logo assets are hosted with this mod. The manifest's team names and
+  // aliases are normalized so the game's display names and short marks can match.
+  var TEAM_LOGO_FILES = {"AIRFORCE":"000-air-force.png","AKRON":"001-akron.png","ALABAMA":"002-alabama.png","APPALACHIANSTATE":"003-appalachian-state.png","APPSTATE":"003-appalachian-state.png","ARIZONA":"004-arizona.png","ARIZONASTATE":"005-arizona-state.png","ARKANSAS":"006-arkansas.png","ARKANSASSTATE":"007-arkansas-state.png","ARMY":"008-army.png","AUBURN":"009-auburn.png","BALLSTATE":"010-ball-state.png","BAYLOR":"011-baylor.png","BOISESTATE":"012-boise-state.png","BOSTONCOLLEGE":"013-boston-college.png","BOWLINGGREENSTATE":"014-bowling-green-state.png","BOWLINGGREEN":"014-bowling-green-state.png","BGSU":"014-bowling-green-state.png","BUFFALO":"015-buffalo.png","BYU":"016-byu.png","CALIFORNIA":"017-california.png","CENTRALMICHIGAN":"018-central-michigan.png","CHARLOTTE":"019-charlotte.png","CINCINNATI":"020-cincinnati.png","CLEMSON":"021-clemson.png","COASTALCAROLINA":"022-coastal-carolina.png","COLORADO":"023-colorado.png","COLORADOSTATE":"024-colorado-state.png","CONNECTICUT":"025-connecticut.png","UCONN":"025-connecticut.png","DUKE":"026-duke.png","EASTERNMICHIGAN":"027-eastern-michigan.png","EASTCAROLINA":"028-east-carolina.png","FIU":"029-fiu.png","FLORIDA":"030-florida.png","FAU":"031-fau.png","FLORIDAATLANTIC":"031-fau.png","FLORIDASTATE":"032-florida-state.png","FRESNOSTATE":"033-fresno-state.png","GEORGIA":"034-georgia.png","GEORGIASOUTHERN":"035-georgia-southern.png","GEORGIASTATE":"036-georgia-state.png","GEORGIATECH":"037-georgia-tech.png","HAWAII":"038-hawaii.png","HOUSTON":"039-houston.png","ILLINOIS":"040-illinois.png","INDIANA":"041-indiana.png","IOWA":"042-iowa.png","IOWASTATE":"043-iowa-state.png","KANSAS":"044-kansas.png","KANSASSTATE":"045-kansas-state.png","KENTSTATE":"046-kent-state.png","KENTUCKY":"047-kentucky.png","LIBERTY":"048-liberty.png","ULLAFAYETTE":"049-ul-lafayette.png","LOUISIANA":"049-ul-lafayette.png","ULL":"049-ul-lafayette.png","LATECH":"050-la-tech.png","LOUISIANATECH":"050-la-tech.png","LOUISVILLE":"051-louisville.png","LSU":"052-lsu.png","MARSHALL":"053-marshall.png","MARYLAND":"054-maryland.png","MEMPHIS":"055-memphis.png","MIAMI":"056-miami.png","MIAMIOFOHIO":"057-miami-of-ohio.png","MIAMIOH":"057-miami-of-ohio.png","MIAMIOHIO":"057-miami-of-ohio.png","MICHIGAN":"058-michigan.png","MICHIGANSTATE":"059-michigan-state.png","MIDDLETENNESSEESTATE":"060-middle-tennessee-state.png","MIDDLETENNESSEE":"060-middle-tennessee-state.png","MTSU":"060-middle-tennessee-state.png","MINNESOTA":"061-minnesota.png","MISSISSIPPISTATE":"062-mississippi-state.png","MISSOURI":"063-missouri.png","NAVY":"064-navy.png","NCSTATE":"065-n-c-state.png","NEBRASKA":"066-nebraska.png","NEVADA":"067-nevada.png","NEWMEXICO":"068-new-mexico.png","NEWMEXICOSTATE":"069-new-mexico-state.png","NMSU":"069-new-mexico-state.png","NORTHCAROLINA":"070-north-carolina.png","NORTHTEXAS":"071-north-texas.png","NORTHERNILLINOIS":"072-northern-illinois.png","NORTHWESTERN":"073-northwestern.png","NOTREDAME":"074-notre-dame.png","OHIO":"075-ohio.png","OHIOSTATE":"076-ohio-state.png","OKLAHOMA":"077-oklahoma.png","OKLAHOMASTATE":"078-oklahoma-state.png","OLDDOMINION":"079-old-dominion.png","OLEMISS":"080-ole-miss.png","MISSISSIPPI":"080-ole-miss.png","OREGON":"081-oregon.png","OREGONSTATE":"082-oregon-state.png","PENNSTATE":"083-penn-state.png","PENNST":"083-penn-state.png","PITTSBURGH":"084-pittsburgh.png","PITT":"084-pittsburgh.png","PURDUE":"085-purdue.png","RICE":"086-rice.png","RUTGERS":"087-rutgers.png","SANDIEGOSTATE":"088-san-diego-state.png","SANJOSESTATE":"089-san-jose-state.png","SMU":"090-smu.png","SOUTHALABAMA":"091-south-alabama.png","SOUTHCAROLINA":"092-south-carolina.png","SOUTHERNMISS":"093-southern-miss.png","SOUTHERNMISSISSIPPI":"093-southern-miss.png","STANFORD":"094-stanford.png","SYRACUSE":"095-syracuse.png","TCU":"096-tcu.png","TEMPLE":"097-temple.png","TENNESSEE":"098-tennessee.png","TEXAS":"099-texas.png","TEXASAM":"100-texas-a-and-m.png","TEXASAANDM":"100-texas-a-and-m.png","TAMU":"100-texas-a-and-m.png","TEXASSTATE":"101-texas-state.png","TEXASTECH":"102-texas-tech.png","TOLEDO":"103-toledo.png","TROY":"104-troy.png","TULANE":"105-tulane.png","TULSA":"106-tulsa.png","UAB":"107-uab.png","UCF":"108-ucf.png","UCLA":"109-ucla.png","ULMONROE":"110-ul-monroe.png","LOUISIANAMONROE":"110-ul-monroe.png","ULM":"110-ul-monroe.png","MASSACHUSETTS":"111-massachusetts.png","UMASS":"111-massachusetts.png","UNLV":"112-unlv.png","USC":"113-usc.png","USF":"114-usf.png","UTAH":"115-utah.png","UTAHSTATE":"116-utah-state.png","UTEP":"117-utep.png","UTSA":"118-utsa.png","VANDERBILT":"119-vanderbilt.png","VIRGINIA":"120-virginia.png","VIRGINIATECH":"121-virginia-tech.png","WAKEFOREST":"122-wake-forest.png","WASHINGTON":"123-washington.png","WASHINGTONSTATE":"124-washington-state.png","WESTVIRGINIA":"125-west-virginia.png","WVU":"125-west-virginia.png","WKENTUCKY":"126-w-kentucky.png","WESTERNKENTUCKY":"126-w-kentucky.png","WKU":"126-w-kentucky.png","WESTERNMICHIGAN":"127-w-michigan.png","WMICHIGAN":"127-w-michigan.png","WMU":"127-w-michigan.png","WISCONSIN":"128-wisconsin.png","WYOMING":"129-wyoming.png","SAMHOUSTON":"add-sam-houston.png","SAMHOUSTONSTATE":"add-sam-houston.png","SHSU":"add-sam-houston.png","JAMESMADISON":"add-james-madison.png","JMU":"add-james-madison.png","JACKSONVILLESTATE":"add-jacksonville-state.png","JAXSTATE":"add-jacksonville-state.png","JSU":"add-jacksonville-state.png","DELAWARE":"add-delaware.png","KENNESAWSTATE":"add-kennesaw-state.png","KENNESAWST":"add-kennesaw-state.png","NORTHDAKOTASTATE":"add-north-dakota-state.png","NDSU":"add-north-dakota-state.png","MISSOURISTATE":"add-missouri-state.png","MISSOURIST":"add-missouri-state.png","MOSTATE":"add-missouri-state.png","SACRAMENTOSTATE":"add-sacramento-state.png","SACSTATE":"add-sacramento-state.png"};
+  var TEAM_LOGO_BASE = "https://raw.githubusercontent.com/CraftyRobott/Retro-Bowl-Modded/main/team-logos/";
+
+  function normalizeLogoKey(value) {
+    return String(value == null ? "" : value).toUpperCase().replace(/[^A-Z0-9]/g, "");
+  }
+
+  function logoFromTeam(team, displayName) {
     var value = teamValue(team, "logo", teamValue(team, "logo_url", ""));
-    return typeof value === "string" ? value.trim() : "";
+    if (typeof value === "string" && value.trim()) return value.trim();
+
+    var candidates = [
+      displayName,
+      teamValue(team, "name", ""),
+      teamValue(team, "tla", ""),
+      teamValue(team, "abbreviation", "")
+    ];
+    for (var i = 0; i < candidates.length; i++) {
+      var key = normalizeLogoKey(candidates[i]);
+      var file = key ? TEAM_LOGO_FILES[key] : "";
+      if (file) return TEAM_LOGO_BASE + file;
+    }
+    return "";
   }
 
   function recordFromTeam(team) {
@@ -645,7 +667,7 @@
         record: recordFromTeam(awayTeam),
         score: String(awayScore),
         color: colorFromTeam(awayTeam, "#8c2d2e"),
-        logo: logoFromTeam(awayTeam),
+        logo: logoFromTeam(awayTeam, awayName),
         possession: possession === 0,
         timeouts: Math.max(0, Math.min(3, Math.round(awayTimeouts)))
       },
@@ -657,7 +679,7 @@
         record: recordFromTeam(homeTeam),
         score: String(homeScore),
         color: colorFromTeam(homeTeam, "#1e2e45"),
-        logo: logoFromTeam(homeTeam),
+        logo: logoFromTeam(homeTeam, homeName),
         possession: possession === 1,
         timeouts: Math.max(0, Math.min(3, Math.round(homeTimeouts)))
       },
