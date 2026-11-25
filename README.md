@@ -65,3 +65,9 @@ Run `python -m http.server 8000` from the repository root and visit http://local
 The repository includes a shared live-game data API for broadcast overlays: **mods/00_scorebug_api.js**. Install it alongside scorebug mods to expose team names, scores, clock, quarter, down/distance, possession, timeouts, colors, logos, records, and rankings through **window.RBScorebug**. New scorebugs can subscribe to updates instead of creating their own hooks into Retro Bowl's internal functions.
 
 See [the Scorebug API reference](docs/scorebug-api.md) for the state schema, methods, and a starter example. The FOX CFB scorebug uses the API when it is installed and retains a legacy fallback.
+
+## Shared mod options framework
+
+The repository includes a shared HTML/CSS settings menu for mods: **mods/mod_options_menu.js**. It adds a **MOD OPTIONS** button to the game's Settings screen and exposes **window.RetroBowlModOptions** so other mods can register toggles, dropdowns, sliders, number/text inputs, sections, and action buttons. Settings are saved locally in the browser.
+
+See [the Mod Options Framework guide](docs/mod-options-framework.md) for installation, API methods, setting definitions, examples, load-order requirements, persistence, and troubleshooting.
