@@ -4,7 +4,7 @@
 (function () {
     "use strict";
 
-    var BUILD = "2026-11-24-fix3";
+    var BUILD = "2026-11-24-fix4";
     if (window.__rbTopRightDecisionMenusBuild === BUILD) return;
     window.__rbTopRightDecisionMenusBuild = BUILD;
 
@@ -24,12 +24,11 @@
     }
 
     function isTargetDecision(args) {
-        // Confirmed from gml_Script_s_create_message:
-        // args[0..1] = _inst/_other
-        // args[2..5] = title/message/button labels/action IDs
-        // args[6..7] = popup colour/alpha
-        var action1 = args[4];
-        var action2 = args[5];
+        // args[0..1] are _inst/_other.
+        // args[2..5] are title, message, button labels, then callback IDs.
+        // Therefore the callback IDs are args[6] and args[7].
+        var action1 = args[6];
+        var action2 = args[7];
         return (
             (action1 === ACTION_KICK_NO && action2 === ACTION_PUNT_YES) ||
             (action1 === ACTION_ONE_POINT && action2 === ACTION_TWO_POINT)
@@ -82,10 +81,10 @@
 
         if (isTargetDecision(args)) {
             console.log("[Top-Right Decisions " + BUILD + "] Correctly detected target menu.", {
-                action1: args[4],
-                action2: args[5],
-                colour: args[6],
-                alpha: args[7],
+                action1: args[6],
+                action2: args[7],
+                colour: args[8],
+                alpha: args[9],
                 popupId: result
             });
 
@@ -110,5 +109,5 @@
         };
     }
 
-    console.log("[Top-Right Decisions " + BUILD + "] Loaded. This build uses action args[4]/args[5].");
+    console.log("[Top-Right Decisions " + BUILD + "] Loaded. Callback detection uses args[6]/args[7].");
 })();
