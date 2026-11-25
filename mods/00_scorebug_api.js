@@ -237,8 +237,6 @@
   // Keep the last complete values when GameMaker briefly exposes partial team maps.
   var lastKnownTeamInfo = { away: null, home: null };
 
-    var lastKnownTeamInfo = { away: null, home: null };
-
     function stableTeamInfo(side, name, mascot, rank, record, color, logo) {
     var cache = lastKnownTeamInfo[side];
     var validName = name && name !== "AWAY" && name !== "HOME";
