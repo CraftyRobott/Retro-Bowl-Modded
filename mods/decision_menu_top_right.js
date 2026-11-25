@@ -1,15 +1,16 @@
 // @name Top-Right Game Decision Buttons
-// @description Hides the white decision popup and moves fourth-down and 1PT/2PT choices to the top-right.
+// @description Hides the white decision popup and moves fourth-down punt/field-goal and 1PT/2PT choices to the top-right.
 // @category presentation
 (function () {
     "use strict";
 
-    var BUILD = "2026-11-24-fix4";
+    var BUILD = "2026-11-24-fix5";
     if (window.__rbTopRightDecisionMenusBuild === BUILD) return;
     window.__rbTopRightDecisionMenusBuild = BUILD;
 
     var ACTION_KICK_NO = 100999;
     var ACTION_PUNT_YES = 101001;
+    var ACTION_FIELD_GOAL_YES = 101003;
     var ACTION_ONE_POINT = 101005;
     var ACTION_TWO_POINT = 101007;
 
@@ -31,6 +32,7 @@
         var action2 = args[7];
         return (
             (action1 === ACTION_KICK_NO && action2 === ACTION_PUNT_YES) ||
+            (action1 === ACTION_KICK_NO && action2 === ACTION_FIELD_GOAL_YES) ||
             (action1 === ACTION_ONE_POINT && action2 === ACTION_TWO_POINT)
         );
     }
@@ -109,5 +111,5 @@
         };
     }
 
-    console.log("[Top-Right Decisions " + BUILD + "] Loaded. Callback detection uses args[6]/args[7].");
+    console.log("[Top-Right Decisions " + BUILD + "] Loaded. Handles punt, field-goal, and 1PT/2PT decisions using args[6]/args[7].");
 })();
