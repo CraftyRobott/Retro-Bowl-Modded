@@ -638,29 +638,23 @@
     var downLabel = down === 1 ? "1ST" : down === 2 ? "2ND" : down === 3 ? "3RD" : "4TH";
     var yardLine = gameNumber(inst, "gmlx_yards", NaN);
     var yardsToGo = gameNumber(inst, "gmlyards", NaN);
-    var distance = NaN;
+    var distance;
 
-    // When the native formatter says GOAL, calculate the yards remaining
-    // to the opponent's goal line from the field position and drive direction.
+    // The game stores yards-to-go directly in gmlyards during normal play.
+    // Only calculate from field position when the native formatter identifies
+    // a goal-to-go situation (the two end-zone coordinate ranges).
     if (isFinite(yardLine) && (yardLine < 300 || yardLine > 2300)) {
-      var driveDirection = gameNumber(inst, "gmldrivedir", 0);
-      if (yardLine < 300) distance = (300 - yardLine) / 20;
-      else distance = (yardLine - 2300) / 20;
-      // If the ball is between the goal lines, use the direction of travel.
-    } else if (isFinite(yardLine)) {
-      var direction = gameNumber(inst, "gmldrivedir", 0);
-      if (direction > 0) distance = (2300 - yardLine) / 20;
-      else if (direction < 0) distance = (yardLine - 300) / 20;
+      distance = yardLine < 300
+        ? Math.ceil((300 - yardLine) / 20)
+        : Math.ceil((yardLine - 2300) / 20);
+    } else {
+      distance = isFinite(yardsToGo) ? Math.round(yardsToGo) : NaN;
     }
 
-    // Normal downs use yards to gain. Inches are displayed as 1 yard rather
-    // than the word INCHES; short goal-to-go situations use numeric distance.
-    if (isFinite(yardsToGo) && yardsToGo < 1) yardsToGo = 1;
-    if (!isFinite(distance) || distance < 1 || distance > 100) {
-      distance = isFinite(yardsToGo) ? Math.max(1, Math.round(yardsToGo)) : 1;
-    } else {
-      distance = Math.max(1, Math.ceil(distance));
-    }
+    // Replace "INCHES" with 1 yard; never substitute field position for
+    // ordinary downs, since that can incorrectly show distance to the goal.
+    if (!isFinite(distance) || distance < 1) distance = 1;
+    distance = Math.min(99, distance);
 
     var result = downLabel + " & " + String(distance);
 
