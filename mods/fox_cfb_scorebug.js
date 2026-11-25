@@ -364,7 +364,7 @@
 
       // Keep the whole overlay hidden until the live match has supplied its
       // team identities, period, clock, and score values.
-      frame.style.visibility = hasInitialLiveData(state) ? "visible" : "hidden";
+      frame.style.visibility = hasInitialLiveData(state) && !state.game.kickoffActive ? "visible" : "hidden";
     } catch (error) {
       logError("Could not update the FOX component inputs.", error);
     }
@@ -796,7 +796,19 @@
         quarter: quarterText(inst, other),
         clock: clock,
         playClock: "",
-        downDistance: downDistance
+        downDistance: downDistance,
+        // Retro Bowl's own kickoff detector covers both the opening kickoff
+        // (down 99) and later kickoffs (gmlkicking === 3).
+        kickoffActive: (function () {
+          try {
+            return typeof window.gml_Script_s_is_kickoff === "function"
+              ? !!window.gml_Script_s_is_kickoff(inst, other, true)
+              : Number(getMatch(inst, other) && getMatch(inst, other).gmlkicking) === 3;
+          } catch (_) {
+            var kickoffMatch = getMatch(inst, other);
+            return !!(kickoffMatch && Number(kickoffMatch.gmlkicking) === 3);
+          }
+        })()
       }
     };
   }
