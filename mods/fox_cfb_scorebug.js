@@ -315,7 +315,7 @@
         gameQuarter: state.game.quarter || "",
         gameClock: state.game.clock || "",
         gamePlayClock: state.game.playClock || "",
-        gameDownDistance: state.game.downDistance || "",
+        gameDownDistance: state.game.downDistanceDisplay || state.game.downDistance || "",
         awayRecordText: state.away.record || "",
         homeRecordText: state.home.record || "",
         awayLogoUrl: state.away.logo || "",
@@ -821,7 +821,12 @@
   }
 
   function snapshotState(inst, other) {
-    var state = buildState(inst, other);
+    // Prefer the shared API so this scorebug uses the same normalized game data
+    // available to every other broadcast overlay. Keep the legacy reader as a fallback.
+    var api = window.RBScorebug;
+    var state = api && typeof api.update === "function"
+      ? api.update(inst, other)
+      : buildState(inst, other);
     if (!state) return null;
     var signature;
     try {
