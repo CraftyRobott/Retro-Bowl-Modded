@@ -16,7 +16,7 @@
   var lastSignature = "";
   var originalScoreboard = window.gml_Script_s_draw_scoreboard;
 
-    function safeArray(value, index, fallback) {
+  function safeArray(value, index, fallback) {
     try {
       if (value == null) return fallback;
       var result = value[index];
@@ -26,7 +26,7 @@
     }
   }
 
-    function teamValue(team, key, fallback) {
+  function teamValue(team, key, fallback) {
     try {
       if (team && team[key] !== undefined && team[key] !== null) return team[key];
       if (team && typeof window.ds_map_find_value === "function") {
@@ -37,25 +37,25 @@
     return fallback;
   }
 
-    function asText(value, fallback) {
+  function asText(value, fallback) {
     if (value === undefined || value === null) return fallback;
     var result = String(value).trim();
     return result ? result : fallback;
   }
 
-    function asOptionalText(value) {
+  function asOptionalText(value) {
     if (value === undefined || value === null) return "";
     if (typeof value !== "string" && typeof value !== "number") return "";
     return String(value).trim();
   }
 
-    function normalizeTeamColor(value) {
+  function normalizeTeamColor(value) {
     if (typeof value !== "string") return "";
     var hex = value.trim().replace(/^\$/, "").replace(/^#/, "");
     return /^[0-9a-f]{6}$/i.test(hex) ? "#" + hex : "";
   }
 
-    function colorFromTeam(team, fallback) {
+  function colorFromTeam(team, fallback) {
     if (!team) return fallback;
     // Teams_CO.txt uses $RRGGBB values in colshirt/colhelmet.
     var keys = ["colshirt", "colhelmet", "coltertiary", "primary_color", "primaryColor", "primary", "colour", "color", "team_color"];
@@ -90,11 +90,11 @@
 
   var TEAM_LOGO_BASE = "https://raw.githubusercontent.com/CraftyRobott/Retro-Bowl-Modded/main/team-logos/";
 
-    function normalizeLogoKey(value) {
+  function normalizeLogoKey(value) {
     return String(value == null ? "" : value).toUpperCase().replace(/[^A-Z0-9]/g, "");
   }
 
-    function logoFromTeam(team, displayName) {
+  function logoFromTeam(team, displayName) {
     var value = teamValue(team, "logo", teamValue(team, "logo_url", ""));
     if (typeof value === "string" && value.trim()) return value.trim();
 
@@ -112,7 +112,7 @@
     return "";
   }
 
-    function recordFromTeam(team) {
+  function recordFromTeam(team) {
     var wins = Number(teamValue(team, "wins", NaN));
     var losses = Number(teamValue(team, "losses", NaN));
     var ties = Number(teamValue(team, "ties", 0)) || 0;
@@ -127,10 +127,7 @@
   var teamRankCache = typeof WeakMap === "function" ? new WeakMap() : null;
   var teamRankFallbackCache = [];
 
-    var teamRankCache = typeof WeakMap === "function" ? new WeakMap() : null;
-  var teamRankFallbackCache = [];
-
-    function rankFromTeam(team, inst, other) {
+  function rankFromTeam(team, inst, other) {
     if (!team) return "";
 
     if (teamRankCache && (typeof team === "object" || typeof team === "function")) {
@@ -166,14 +163,14 @@
     return result;
   }
 
-    function gameNumber(inst, key, fallback) {
+  function gameNumber(inst, key, fallback) {
     var value = inst && inst[key];
     if (value && typeof value.toNumber === "function") value = value.toNumber();
     var number = Number(value);
     return isFinite(number) ? number : fallback;
   }
 
-    function quarterText(inst, other) {
+  function quarterText(inst, other) {
     var quarter = gameNumber(inst, "gmlquarter", NaN);
     if (!isFinite(quarter)) return "";
     var text = "";
@@ -215,7 +212,7 @@
     return nativeText || label;
   }
 
-    function getSettings(inst, other) {
+  function getSettings(inst, other) {
     try {
       if (typeof window.yyInst === "function" && typeof window.YYASSET_REF === "function") {
         return window.yyInst(inst, other, window.YYASSET_REF(0x00000062));
@@ -224,7 +221,7 @@
     return null;
   }
 
-    function getMatch(inst, other) {
+  function getMatch(inst, other) {
     try {
       if (typeof window.yyInst === "function" && typeof window.YYASSET_REF === "function") {
         return window.yyInst(inst, other, window.YYASSET_REF(0x00000069));
@@ -237,7 +234,7 @@
   // Keep the last complete values when GameMaker briefly exposes partial team maps.
   var lastKnownTeamInfo = { away: null, home: null };
 
-    function stableTeamInfo(side, name, mascot, rank, record, color, logo) {
+  function stableTeamInfo(side, name, mascot, rank, record, color, logo) {
     var cache = lastKnownTeamInfo[side];
     var validName = name && name !== "AWAY" && name !== "HOME";
     if (!cache || (validName && cache.name && cache.name !== name)) {
