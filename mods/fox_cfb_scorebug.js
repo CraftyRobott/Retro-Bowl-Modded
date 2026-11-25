@@ -864,7 +864,7 @@
           }
         })(),
         displayedQuarter: state.game.quarter,
-        displayedDownDistance: state.game.downDistance
+        displayedDownDistance: state.game.downDistanceDisplay || state.game.downDistance
       });
       sendState(state);
     }
