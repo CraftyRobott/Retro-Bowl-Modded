@@ -224,18 +224,38 @@
     return true;
   }
 
+  var logoMutationObservers = {};
+  var desiredLogoUrls = {};
+
   function updateNativeLogo(doc, binding, url) {
     if (!doc) return false;
     var image = doc.querySelector('img[data-bind="' + binding + '"]');
     if (!image) return false;
     var nextUrl = typeof url === "string" ? url.trim() : "";
-    if (nextUrl) {
-      if (image.getAttribute("src") !== nextUrl) image.setAttribute("src", nextUrl);
-      image.style.visibility = "visible";
-    } else {
-      image.removeAttribute("src");
-      image.style.visibility = "hidden";
+    desiredLogoUrls[binding] = nextUrl;
+
+    function applyLogo() {
+      var desired = desiredLogoUrls[binding] || "";
+      if (desired) {
+        if (image.getAttribute("src") !== desired) image.setAttribute("src", desired);
+        if (image.style.visibility !== "visible") image.style.visibility = "visible";
+      } else {
+        if (image.hasAttribute("src")) image.removeAttribute("src");
+        if (image.style.visibility !== "hidden") image.style.visibility = "hidden";
+      }
     }
+
+    // The component can re-render its demo image after a prop update. Keep the
+    // native image slot pinned to the last live URL (or hidden when unmatched).
+    if (!logoMutationObservers[binding] &&
+        typeof doc.defaultView.MutationObserver === "function") {
+      logoMutationObservers[binding] = new doc.defaultView.MutationObserver(applyLogo);
+      logoMutationObservers[binding].observe(image, {
+        attributes: true,
+        attributeFilter: ["src", "style"]
+      });
+    }
+    applyLogo();
     return true;
   }
 
