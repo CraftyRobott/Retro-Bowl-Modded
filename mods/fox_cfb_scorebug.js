@@ -386,6 +386,59 @@
 
   window.addEventListener("message", onFrameMessage);
 
+  // Scorebug size is a percentage of the original 2315 x 534 design.
+  // The default of 50 preserves the current on-screen size.
+  var scorebugSize = 50;
+  var scorebugSizeRegistered = false;
+  var scorebugSizeSettingId = "fox_cfb_scorebug_size";
+
+  function clampScorebugSize(value) {
+    var size = Number(value);
+    if (!isFinite(size)) size = 50;
+    return Math.max(25, Math.min(100, size));
+  }
+
+  function applyScorebugSize(value) {
+    scorebugSize = clampScorebugSize(value);
+    if (window.__foxCfbLayoutFrame) window.__foxCfbLayoutFrame();
+  }
+
+  function registerScorebugSizeOption() {
+    var options = window.RetroBowlModOptions;
+    if (!options || typeof options.register !== "function" || scorebugSizeRegistered) return false;
+
+    options.register({
+      id: scorebugSizeSettingId,
+      type: "range",
+      label: "FOX Scorebug Size",
+      description: "Adjust the scorebug size from 25% to 100% of its original design.",
+      default: 50,
+      min: 25,
+      max: 100,
+      step: 5,
+      onChange: applyScorebugSize
+    });
+    applyScorebugSize(options.get(scorebugSizeSettingId));
+    scorebugSizeRegistered = true;
+    console.log(TAG, "Registered scorebug size slider in Mod Options.");
+    return true;
+  }
+
+  // The framework may load after this mod depending on the installation's
+  // mod ordering, so wait briefly for its API instead of failing permanently.
+  if (!registerScorebugSizeOption()) {
+    var optionsWaitAttempts = 0;
+    var optionsWaitTimer = window.setInterval(function () {
+      optionsWaitAttempts++;
+      if (registerScorebugSizeOption() || optionsWaitAttempts >= 120) {
+        window.clearInterval(optionsWaitTimer);
+        if (!scorebugSizeRegistered) {
+          console.warn(TAG, "Mod Options Framework was not found; using the default 50% scorebug size.");
+        }
+      }
+    }, 500);
+  }
+
   // Expose the layout callback on window so the game wrapper's evaluator and
   // resize callbacks always resolve the same function scope.
   window.__foxCfbLayoutFrame = function () {
@@ -394,7 +447,7 @@
     var vh = Math.max(1, window.innerHeight || document.documentElement.clientHeight || 1);
     // The uploaded FOX design uses a 2315 x 534 authoring canvas.
     // Scale it to fit the lower portion of the game viewport without changing its layout.
-    var scale = Math.min(0.42, (vw * 0.82) / 2315, (vh * 0.42) / 534) * 0.5;
+    var scale = Math.min(0.42, (vw * 0.82) / 2315, (vh * 0.42) / 534) * (scorebugSize / 100);
     var width = 2315 * scale;
     var height = 534 * scale;
     frame.style.left = ((vw - width) / 2) + "px";
