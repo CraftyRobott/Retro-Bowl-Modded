@@ -632,40 +632,46 @@
   }
 
   function downDistanceText(inst, other) {
-    var text = "";
+    var down = Math.round(gameNumber(inst, "gmldown", 0));
+    if (down < 1 || down > 4) return "";
 
-    // Use Retro Bowl's own formatter first. The working SEC scorebug calls
-    // this exact helper with the scoreboard's _inst/_other arguments.
-    try {
-      if (typeof window.gml_Script_s_get_string_downand === "function") {
-        var nativeText = window.gml_Script_s_get_string_downand(inst, other);
-        if (nativeText !== undefined && nativeText !== null) text = String(nativeText).trim();
-      }
-    } catch (error) {
-      console.warn(TAG, "Native down/distance formatter failed; using field fallback.", error);
+    var downLabel = down === 1 ? "1ST" : down === 2 ? "2ND" : down === 3 ? "3RD" : "4TH";
+    var yardLine = gameNumber(inst, "gmlx_yards", NaN);
+    var yardsToGo = gameNumber(inst, "gmlyards", NaN);
+    var distance = NaN;
+
+    // When the native formatter says GOAL, calculate the yards remaining
+    // to the opponent's goal line from the field position and drive direction.
+    if (isFinite(yardLine) && (yardLine < 300 || yardLine > 2300)) {
+      var driveDirection = gameNumber(inst, "gmldrivedir", 0);
+      if (yardLine < 300) distance = (300 - yardLine) / 20;
+      else distance = (yardLine - 2300) / 20;
+      // If the ball is between the goal lines, use the direction of travel.
+    } else if (isFinite(yardLine)) {
+      var direction = gameNumber(inst, "gmldrivedir", 0);
+      if (direction > 0) distance = (2300 - yardLine) / 20;
+      else if (direction < 0) distance = (yardLine - 300) / 20;
     }
 
-    // Compatibility fallback only for builds where the native helper is unavailable.
-    if (!text) {
-      var down = Math.round(gameNumber(inst, "gmldown", 0));
-      if (down >= 1 && down <= 4) {
-        var yardLine = gameNumber(inst, "gmlx_yards", NaN);
-        var yardsToGo = gameNumber(inst, "gmlyards", NaN);
-        var label = down === 1 ? "1ST" : down === 2 ? "2ND" : down === 3 ? "3RD" : "4TH";
-        if (isFinite(yardLine) && (yardLine < 300 || yardLine > 2300)) text = label + " & GOAL";
-        else if (isFinite(yardsToGo) && yardsToGo < 1) text = label + " & INCHES";
-        else if (isFinite(yardsToGo)) text = label + " & " + String(Math.round(yardsToGo));
-      }
+    // Normal downs use yards to gain. Inches are displayed as 1 yard rather
+    // than the word INCHES; short goal-to-go situations use numeric distance.
+    if (isFinite(yardsToGo) && yardsToGo < 1) yardsToGo = 1;
+    if (!isFinite(distance) || distance < 1 || distance > 100) {
+      distance = isFinite(yardsToGo) ? Math.max(1, Math.round(yardsToGo)) : 1;
+    } else {
+      distance = Math.max(1, Math.ceil(distance));
     }
+
+    var result = downLabel + " & " + String(distance);
 
     // Hide only the stale startup value until a real live down/distance arrives.
     if (startupDownDistancePending) {
-      var normalized = String(text).replace(/\\s+/g, " ").trim().toUpperCase();
+      var normalized = result.replace(/\\s+/g, " ").trim().toUpperCase();
       if (normalized === "2ND & 5" || normalized === "2ND AND 5") return "";
       if (normalized) startupDownDistancePending = false;
     }
 
-    return text;
+    return result;
   }
 
   function getSettings(inst, other) {
