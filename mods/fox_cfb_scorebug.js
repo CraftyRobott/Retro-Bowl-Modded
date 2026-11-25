@@ -258,8 +258,8 @@
         homeWordmark: state.home.mascot || "",
         scoreLeftText: String(state.away.score),
         scoreRightText: String(state.home.score),
-        rankLeftText: state.away.rank ? "#" + String(state.away.rank).replace(/^#/, "") : " ",
-        rankRightText: state.home.rank ? "#" + String(state.home.rank).replace(/^#/, "") : " ",
+        rankLeftText: state.away.rank ? "#" + String(state.away.rank).replace(/^#/, "") : "\u00a0",
+        rankRightText: state.home.rank ? "#" + String(state.home.rank).replace(/^#/, "") : "\u00a0",
         awayColor: state.away.color || "#8c2d2e",
         homeColor: state.home.color || "#1e2e45",
         awayTimeouts: state.away.timeouts,
@@ -638,6 +638,33 @@
     return null;
   }
 
+  // Team identity and season metadata do not change during an individual play.
+  // Keep the last complete values when GameMaker briefly exposes partial team maps.
+  var lastKnownTeamInfo = { away: null, home: null };
+
+  function stableTeamInfo(side, name, mascot, rank, record, color, logo) {
+    var cache = lastKnownTeamInfo[side];
+    var validName = name && name !== "AWAY" && name !== "HOME";
+    if (!cache || (validName && cache.name && cache.name !== name)) {
+      cache = { name: "", mascot: "", rank: "", record: "", color: "", logo: "" };
+      lastKnownTeamInfo[side] = cache;
+    }
+    if (validName) cache.name = name;
+    if (mascot) cache.mascot = mascot;
+    if (rank) cache.rank = rank;
+    if (record) cache.record = record;
+    if (color) cache.color = color;
+    if (logo) cache.logo = logo;
+    return {
+      name: cache.name || name,
+      mascot: cache.mascot || mascot,
+      rank: cache.rank || rank,
+      record: cache.record || record,
+      color: cache.color || color,
+      logo: cache.logo || logo
+    };
+  }
+
   function buildState(inst, other) {
     if (!inst || !inst.gmlteam) return null;
     var awayTeam = safeArray(inst.gmlteam, 0, null);
@@ -649,6 +676,20 @@
     var homeName = asText(teamValue(homeTeam, "name", ""), asText(teamValue(homeTeam, "tla", "HOME"), "HOME"));
     var awayMark = asText(teamValue(awayTeam, "tla", ""), "");
     var homeMark = asText(teamValue(homeTeam, "tla", ""), "");
+    var awayStable = stableTeamInfo(
+      "away", awayName, awayMark,
+      rankFromTeam(awayTeam, inst, other), recordFromTeam(awayTeam),
+      colorFromTeam(awayTeam, ""), logoFromTeam(awayTeam, awayName)
+    );
+    var homeStable = stableTeamInfo(
+      "home", homeName, homeMark,
+      rankFromTeam(homeTeam, inst, other), recordFromTeam(homeTeam),
+      colorFromTeam(homeTeam, ""), logoFromTeam(homeTeam, homeName)
+    );
+    awayName = awayStable.name || awayName;
+    homeName = homeStable.name || homeName;
+    awayMark = awayStable.mascot || awayMark;
+    homeMark = homeStable.mascot || homeMark;
     var awayScore = Number(safeArray(inst.gmlteam_score, 0, 0)) || 0;
     var homeScore = Number(safeArray(inst.gmlteam_score, 1, 0)) || 0;
 
@@ -687,11 +728,11 @@
         name: awayName,
         mascot: awayMark,
         mascot2: "",
-        rank: rankFromTeam(awayTeam, inst, other),
-        record: recordFromTeam(awayTeam),
+        rank: awayStable.rank,
+        record: awayStable.record,
         score: String(awayScore),
-        color: colorFromTeam(awayTeam, "#8c2d2e"),
-        logo: logoFromTeam(awayTeam, awayName),
+        color: awayStable.color || "#8c2d2e",
+        logo: awayStable.logo,
         possession: possession === 0,
         timeouts: Math.max(0, Math.min(3, Math.round(awayTimeouts)))
       },
@@ -699,11 +740,11 @@
         name: homeName,
         mascot: homeMark,
         mascot2: "",
-        rank: rankFromTeam(homeTeam, inst, other),
-        record: recordFromTeam(homeTeam),
+        rank: homeStable.rank,
+        record: homeStable.record,
         score: String(homeScore),
-        color: colorFromTeam(homeTeam, "#1e2e45"),
-        logo: logoFromTeam(homeTeam, homeName),
+        color: homeStable.color || "#1e2e45",
+        logo: homeStable.logo,
         possession: possession === 1,
         timeouts: Math.max(0, Math.min(3, Math.round(homeTimeouts)))
       },
