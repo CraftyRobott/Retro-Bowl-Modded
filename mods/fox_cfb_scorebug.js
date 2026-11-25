@@ -649,11 +649,14 @@
       console.warn(TAG, "Native down/distance formatter failed.", error);
     }
 
-    var normalized = nativeText.toUpperCase().replace(/\s+/g, " ").trim();
+    // Match the native formatter's actual mixed-case output (for example,
+    // "4th & Inches" or "1st & Goal"). Use case-insensitive substring checks
+    // rather than word-boundary regexes so punctuation/spacing cannot interfere.
+    var normalized = nativeText.toLowerCase().replace(/\s+/g, " ").trim();
     var result;
-    if (/\bGOAL\b/.test(normalized)) {
+    if (normalized.indexOf("goal") !== -1) {
       result = downLabel;
-    } else if (/\bINCHES\b/.test(normalized)) {
+    } else if (normalized.indexOf("inches") !== -1) {
       result = downLabel + " & 1";
     } else {
       result = nativeText || downLabel;
