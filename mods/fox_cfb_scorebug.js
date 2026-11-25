@@ -92,7 +92,11 @@
       template = template.replace(/background:\s*#00b140/gi, "background: transparent");
       template = template.replace(/background-color:\s*#00b140/gi, "background-color: transparent");
       var transparentDocStyle = '<style id="fox-cfb-live-transparent">html,body,x-dc,x-dc>div,body>div{background:transparent!important;background-color:transparent!important}*[style*="#00b140"]{background:transparent!important;background-color:transparent!important}</style>';
-      template = template.replace(/<head([^>]*)>/i, '<head$1>' + transparentDocStyle);
+      // Retro Bowl College's regular UI font is 8-bit Operator+ 8
+      // (fnt_tecmo_small in RetroBowl.js). Load the matching web font for
+      // this HTML overlay, then apply it consistently to the FOX text.
+      var retroBowlFontStyle = '<style id="fox-cfb-retrobowl-font">@font-face{font-family:"RetroBowl8Bit";src:url("https://static.wfonts.com/data/2016/04/24/8-bit-operator/8bitOperatorPlus8-Regular.ttf") format("truetype");font-style:normal;font-weight:400;font-display:swap}@font-face{font-family:"RetroBowl8Bit";src:url("https://static.wfonts.com/data/2016/04/24/8-bit-operator/8bitOperatorPlus8-Bold.ttf") format("truetype");font-style:normal;font-weight:700;font-display:swap}html,body,body *{font-family:"RetroBowl8Bit",monospace!important}</style>';
+      template = template.replace(/<head([^>]*)>/i, '<head$1>' + transparentDocStyle + retroBowlFontStyle);
       console.log(TAG, "Removed", greenMatches, "chroma-key green references and prepared native component inputs.");
       var patched = html.slice(0, match.index) + match[1] + JSON.stringify(template).replace(/</g, "\\u003C") + match[3] +
         html.slice(match.index + match[0].length);
