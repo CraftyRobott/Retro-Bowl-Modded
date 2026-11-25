@@ -797,17 +797,16 @@
         clock: clock,
         playClock: "",
         downDistance: downDistance,
-        // Retro Bowl's own kickoff detector covers both the opening kickoff
-        // (down 99) and later kickoffs (gmlkicking === 3).
+        // Hide through the opening kickoff and every later kickoff. The
+        // game's native helper checks these exact fields on the match object:
+        // gmldown === 99 for the opening kickoff, or gmlkicking === 3 while
+        // a kickoff is in progress. Read them directly to avoid wrapper issues.
         kickoffActive: (function () {
-          try {
-            return typeof window.gml_Script_s_is_kickoff === "function"
-              ? !!window.gml_Script_s_is_kickoff(inst, other, true)
-              : Number(getMatch(inst, other) && getMatch(inst, other).gmlkicking) === 3;
-          } catch (_) {
-            var kickoffMatch = getMatch(inst, other);
-            return !!(kickoffMatch && Number(kickoffMatch.gmlkicking) === 3);
-          }
+          var kickoffMatch = getMatch(inst, other);
+          if (!kickoffMatch) return true;
+          var kickoffDown = Number(kickoffMatch.gmldown);
+          var kickingState = Number(kickoffMatch.gmlkicking);
+          return kickoffDown === 99 || kickingState === 3;
         })()
       }
     };
