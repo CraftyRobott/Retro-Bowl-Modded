@@ -259,6 +259,29 @@
     return true;
   }
 
+  function hasInitialLiveData(state) {
+    if (!state || !state.away || !state.home || !state.game) return false;
+
+    // Do not expose the exported design's sample/demo values while the game
+    // is still initializing. Team names, period, and game clock must all be
+    // populated by the live match before the overlay can appear.
+    function validTeamName(value) {
+      var name = String(value || "").trim();
+      return !!name && !/^(AWAY|HOME|TEAM|TBD|UNKNOWN)$/i.test(name);
+    }
+
+    var quarter = String(state.game.quarter || "").trim();
+    var clock = String(state.game.clock || "").trim();
+    var validClock = /^\d{1,2}:\d{2}$/.test(clock);
+
+    return validTeamName(state.away.name) &&
+      validTeamName(state.home.name) &&
+      !!quarter &&
+      validClock &&
+      state.away.score !== undefined &&
+      state.home.score !== undefined;
+  }
+
   function sendState(state) {
     pendingState = state;
     if (!frame || !frameReady || !state) return;
@@ -339,8 +362,9 @@
         }
       }, 50);
 
-      // Reveal the scorebug only after real game data replaces every demo/default value.
-      frame.style.visibility = "visible";
+      // Keep the whole overlay hidden until the live match has supplied its
+      // team identities, period, clock, and score values.
+      frame.style.visibility = hasInitialLiveData(state) ? "visible" : "hidden";
     } catch (error) {
       logError("Could not update the FOX component inputs.", error);
     }
