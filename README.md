@@ -59,3 +59,9 @@ The local game wrapper uses a no-op Poki SDK stub and starts GameMaker directly.
 ## Local preview
 
 Run `python -m http.server 8000` from the repository root and visit http://localhost:8000.
+
+## Shared scorebug API
+
+The repository includes a shared live-game data API for broadcast overlays: **mods/00_scorebug_api.js**. Install it alongside scorebug mods to expose team names, scores, clock, quarter, down/distance, possession, timeouts, colors, logos, records, and rankings through **window.RBScorebug**. New scorebugs can subscribe to updates instead of creating their own hooks into Retro Bowl's internal functions.
+
+See [the Scorebug API reference](docs/scorebug-api.md) for the state schema, methods, and a starter example. The FOX CFB scorebug uses the API when it is installed and retains a legacy fallback.
