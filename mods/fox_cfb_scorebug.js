@@ -636,33 +636,34 @@
     if (down < 1 || down > 4) return "";
 
     var downLabel = down === 1 ? "1ST" : down === 2 ? "2ND" : down === 3 ? "3RD" : "4TH";
-    var yardLine = gameNumber(inst, "gmlx_yards", NaN);
-    var yardsToGo = gameNumber(inst, "gmlyards", NaN);
-    var distance;
+    var nativeText = "";
 
-    // The game stores yards-to-go directly in gmlyards during normal play.
-    // Only calculate from field position when the native formatter identifies
-    // a goal-to-go situation (the two end-zone coordinate ranges).
-    if (isFinite(yardLine) && (yardLine < 300 || yardLine > 2300)) {
-      distance = yardLine < 300
-        ? Math.ceil((300 - yardLine) / 20)
-        : Math.ceil((yardLine - 2300) / 20);
-    } else {
-      distance = isFinite(yardsToGo) ? Math.round(yardsToGo) : NaN;
+    // Keep Retro Bowl's own down-and-distance calculation. Only change the
+    // two special labels requested: GOAL becomes the down alone, INCHES
+    // becomes a one-yard distance.
+    try {
+      if (typeof window.gml_Script_s_get_string_downand === "function") {
+        nativeText = String(window.gml_Script_s_get_string_downand(inst, other) || "").trim();
+      }
+    } catch (error) {
+      console.warn(TAG, "Native down/distance formatter failed.", error);
     }
 
-    // Replace "INCHES" with 1 yard; never substitute field position for
-    // ordinary downs, since that can incorrectly show distance to the goal.
-    if (!isFinite(distance) || distance < 1) distance = 1;
-    distance = Math.min(99, distance);
-
-    var result = downLabel + " & " + String(distance);
+    var normalized = nativeText.toUpperCase().replace(/\\s+/g, " ").trim();
+    var result;
+    if (/\\bGOAL\\b/.test(normalized)) {
+      result = downLabel;
+    } else if (/\\bINCHES\\b/.test(normalized)) {
+      result = downLabel + " & 1";
+    } else {
+      result = nativeText || downLabel;
+    }
 
     // Hide only the stale startup value until a real live down/distance arrives.
     if (startupDownDistancePending) {
-      var normalized = result.replace(/\\s+/g, " ").trim().toUpperCase();
-      if (normalized === "2ND & 5" || normalized === "2ND AND 5") return "";
-      if (normalized) startupDownDistancePending = false;
+      var startupValue = result.replace(/\\s+/g, " ").trim().toUpperCase();
+      if (startupValue === "2ND & 5" || startupValue === "2ND AND 5") return "";
+      if (startupValue) startupDownDistancePending = false;
     }
 
     return result;
