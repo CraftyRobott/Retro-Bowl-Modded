@@ -146,6 +146,10 @@
     var element = doc.getElementById("downDistance");
     if (!element) return false;
 
+    // Nudge the down-and-distance label left within its existing box.
+    element.style.position = "relative";
+    element.style.left = "-10px";
+
     // Observe only the down/distance node. Watching the entire iframe body
     // also reacts to clock and score animations, so keep this isolated from
     // every other live field in the FOX component.
