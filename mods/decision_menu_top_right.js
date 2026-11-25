@@ -1,12 +1,13 @@
 // @name Top-Right Game Decision Buttons
-// @description Removes the white decision popup and moves fourth-down and 1PT/2PT choices to the top-right.
+// @description Hides the white decision popup and moves fourth-down and 1PT/2PT choices to the top-right.
 // @category presentation
 (function () {
     "use strict";
 
-    if (window.__rbTopRightDecisionMenusInstalled) return;
+    var BUILD = "2026-11-24-fix3";
+    if (window.__rbTopRightDecisionMenusBuild === BUILD) return;
+    window.__rbTopRightDecisionMenusBuild = BUILD;
 
-    // IDs confirmed from RetroBowl.js.
     var ACTION_KICK_NO = 100999;
     var ACTION_PUNT_YES = 101001;
     var ACTION_ONE_POINT = 101005;
@@ -17,19 +18,18 @@
         try {
             return window.yyInst(owner, other, id);
         } catch (error) {
-            console.warn("[Top-Right Decisions] Could not resolve instance", id, error);
+            console.warn("[Top-Right Decisions " + BUILD + "] yyInst failed for", id, error);
             return null;
         }
     }
 
     function isTargetDecision(args) {
-        // s_create_message signature:
-        // (_inst, _other, title, message, button1, button2, action1, action2, colour, alpha)
-        // arguments[0] and [1] are _inst/_other, so action IDs are [6]/[7].
-        if (args[8] !== 16777215 || args[9] !== 0.7) return false;
-
-        var action1 = args[6];
-        var action2 = args[7];
+        // Confirmed from gml_Script_s_create_message:
+        // args[0..1] = _inst/_other
+        // args[2..5] = title/message/button labels/action IDs
+        // args[6..7] = popup colour/alpha
+        var action1 = args[4];
+        var action2 = args[5];
         return (
             (action1 === ACTION_KICK_NO && action2 === ACTION_PUNT_YES) ||
             (action1 === ACTION_ONE_POINT && action2 === ACTION_TWO_POINT)
@@ -49,7 +49,6 @@
         var button1 = getInstance(owner, other, popup.gmlinst_btn_1);
         var button2 = getInstance(owner, other, popup.gmlinst_btn_2);
 
-        // Hide the dimming layer and centered title/message, not the buttons.
         if (background) {
             background.visible = false;
             background.gmlalpha = 0;
@@ -60,46 +59,48 @@
             message.gmldraw_box = false;
         }
 
-        // Keep the game's original button instances and click-action IDs.
-        var buttons = [button1, button2];
         var y = 12;
-        for (var i = 0; i < buttons.length; i++) {
-            var button = buttons[i];
-            if (!button || button.visible === false) continue;
-
+        [button1, button2].forEach(function (button) {
+            if (!button || button.visible === false) return;
             var buttonWidth = Number(button.sprite_width) || 90;
             var buttonHeight = Number(button.sprite_height) || 34;
             button.x = width - buttonWidth - 12;
             button.y = y;
             y += buttonHeight + 7;
-        }
+        });
     }
 
-    var originalCreateMessage = window.gml_Script_s_create_message;
-    if (typeof originalCreateMessage !== "function") {
-        console.error("[Top-Right Decisions] s_create_message was not found; mod not installed.");
+    var originalCreate = window.gml_Script_s_create_message;
+    if (typeof originalCreate !== "function") {
+        console.error("[Top-Right Decisions " + BUILD + "] s_create_message not found.");
         return;
     }
 
     window.gml_Script_s_create_message = function () {
         var args = arguments;
-        var result = originalCreateMessage.apply(this, args);
+        var result = originalCreate.apply(this, args);
 
         if (isTargetDecision(args)) {
+            console.log("[Top-Right Decisions " + BUILD + "] Correctly detected target menu.", {
+                action1: args[4],
+                action2: args[5],
+                colour: args[6],
+                alpha: args[7],
+                popupId: result
+            });
+
             var popup = getInstance(args[0], args[1], result);
             if (popup) {
                 popup.__rbTopRightDecisionMenu = true;
                 applyLayout(args[0], args[1], popup);
-                console.log("[Top-Right Decisions] Matched decision menu and applied layout.");
+                console.log("[Top-Right Decisions " + BUILD + "] Layout applied.");
             } else {
-                console.warn("[Top-Right Decisions] Matched menu, but could not resolve popup instance.");
+                console.warn("[Top-Right Decisions " + BUILD + "] Menu detected, but popup instance lookup failed.");
             }
         }
-
         return result;
     };
 
-    // The game's own recenter function resets button X positions after a resize.
     var originalRecenter = window.gml_Script_s_message_recenter;
     if (typeof originalRecenter === "function") {
         window.gml_Script_s_message_recenter = function (_inst, _other) {
@@ -109,6 +110,5 @@
         };
     }
 
-    window.__rbTopRightDecisionMenusInstalled = true;
-    console.log("[Top-Right Decisions] Mod installed; waiting for punt or conversion menu.");
+    console.log("[Top-Right Decisions " + BUILD + "] Loaded. This build uses action args[4]/args[5].");
 })();
