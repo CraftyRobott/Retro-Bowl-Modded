@@ -649,11 +649,11 @@
       console.warn(TAG, "Native down/distance formatter failed.", error);
     }
 
-    var normalized = nativeText.toUpperCase().replace(/\\s+/g, " ").trim();
+    var normalized = nativeText.toUpperCase().replace(/\s+/g, " ").trim();
     var result;
-    if (/\\bGOAL\\b/.test(normalized)) {
+    if (/\bGOAL\b/.test(normalized)) {
       result = downLabel;
-    } else if (/\\bINCHES\\b/.test(normalized)) {
+    } else if (/\bINCHES\b/.test(normalized)) {
       result = downLabel + " & 1";
     } else {
       result = nativeText || downLabel;
@@ -661,7 +661,7 @@
 
     // Hide only the stale startup value until a real live down/distance arrives.
     if (startupDownDistancePending) {
-      var startupValue = result.replace(/\\s+/g, " ").trim().toUpperCase();
+      var startupValue = result.replace(/\s+/g, " ").trim().toUpperCase();
       if (startupValue === "2ND & 5" || startupValue === "2ND AND 5") return "";
       if (startupValue) startupDownDistancePending = false;
     }
